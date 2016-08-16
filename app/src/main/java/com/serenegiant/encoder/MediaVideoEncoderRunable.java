@@ -5,7 +5,7 @@ package com.serenegiant.encoder;
  *
  * Copyright (c) 2014-2015 saki t_saki@serenegiant.com
  *
- * File name: MediaVideoEncoder.java
+ * File name: MediaVideoEncoderRunable.java
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,9 +35,9 @@ import com.serenegiant.glutils.RenderRunnable;
 
 import java.io.IOException;
 
-public class MediaVideoEncoder extends MediaEncoderRunable {
+public class MediaVideoEncoderRunable extends MediaEncoderRunable {
     private static final boolean DEBUG = false;    // TODO set false on release
-    private static final String TAG = MediaVideoEncoder.class.getSimpleName();
+    private static final String TAG = MediaVideoEncoderRunable.class.getSimpleName();
 
     private static final String MIME_TYPE = "video/avc";
     // parameters for recording
@@ -49,9 +49,9 @@ public class MediaVideoEncoder extends MediaEncoderRunable {
     private RenderRunnable mRenderRunnable;
     private Surface mSurface;
 
-    public MediaVideoEncoder(final MediaMuxerWrapper muxer, final MediaEncoderListener listener, final int width, final int height) {
+    public MediaVideoEncoderRunable(final MediaMuxerWrapper muxer, final MediaEncoderListener listener, final int width, final int height) {
         super(muxer, listener);
-        if (DEBUG) Log.i(TAG, "MediaVideoEncoder: ");
+        if (DEBUG) Log.i(TAG, "MediaVideoEncoderRunable: ");
         mWidth = width;
         mHeight = height;
         mRenderRunnable = RenderRunnable.createHandler(TAG);

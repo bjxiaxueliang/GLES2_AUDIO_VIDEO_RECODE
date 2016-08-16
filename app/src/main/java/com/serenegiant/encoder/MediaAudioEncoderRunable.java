@@ -5,7 +5,7 @@ package com.serenegiant.encoder;
  *
  * Copyright (c) 2014-2015 saki t_saki@serenegiant.com
  *
- * File name: MediaAudioEncoder.java
+ * File name: MediaAudioEncoderRunable.java
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,9 @@ import android.util.Log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class MediaAudioEncoder extends MediaEncoderRunable {
+public class MediaAudioEncoderRunable extends MediaEncoderRunable {
 
-    private static final String TAG = "MediaAudioEncoder";
+    private static final String TAG = "MediaAudioEncoderRunable";
 
     private static final String MIME_TYPE = "audio/mp4a-latm";
     private static final int SAMPLE_RATE = 44100;    // 44.1[KHz] is only setting guaranteed to be available on all devices.
@@ -46,7 +46,7 @@ public class MediaAudioEncoder extends MediaEncoderRunable {
 
     private AudioThread mAudioThread = null;
 
-    public MediaAudioEncoder(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
+    public MediaAudioEncoderRunable(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
         super(muxer, listener);
     }
 

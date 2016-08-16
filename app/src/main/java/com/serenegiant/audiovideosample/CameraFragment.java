@@ -9,10 +9,10 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import com.serenegiant.encoder.MediaAudioEncoder;
+import com.serenegiant.encoder.MediaAudioEncoderRunable;
 import com.serenegiant.encoder.MediaEncoderRunable;
 import com.serenegiant.encoder.MediaMuxerWrapper;
-import com.serenegiant.encoder.MediaVideoEncoder;
+import com.serenegiant.encoder.MediaVideoEncoderRunable;
 
 import java.io.IOException;
 
@@ -85,12 +85,12 @@ public class CameraFragment extends Fragment {
             mMuxer = new MediaMuxerWrapper(".mp4");    // if you record audio only, ".m4a" is also OK.
             if (true) {
                 // for video capturing
-                //new MediaVideoEncoder(mMuxer, mMediaEncoderListener, mCameraView.getVideoWidth(), mCameraView.getVideoHeight());
-                new MediaVideoEncoder(mMuxer, mMediaEncoderListener, 480, 480);
+                //new MediaVideoEncoderRunable(mMuxer, mMediaEncoderListener, mCameraView.getVideoWidth(), mCameraView.getVideoHeight());
+                new MediaVideoEncoderRunable(mMuxer, mMediaEncoderListener, 480, 480);
             }
             if (true) {
                 // for audio capturing
-                new MediaAudioEncoder(mMuxer, mMediaEncoderListener);
+                new MediaAudioEncoderRunable(mMuxer, mMediaEncoderListener);
             }
             mMuxer.prepare();
             mMuxer.startRecording();
@@ -119,15 +119,15 @@ public class CameraFragment extends Fragment {
         @Override
         public void onPrepared(final MediaEncoderRunable encoder) {
             // 开始录制视频
-            if (encoder instanceof MediaVideoEncoder) {
-                mCameraView.setVideoEncoder((MediaVideoEncoder) encoder);
+            if (encoder instanceof MediaVideoEncoderRunable) {
+                mCameraView.setVideoEncoder((MediaVideoEncoderRunable) encoder);
             }
         }
 
         @Override
         public void onStopped(final MediaEncoderRunable encoder) {
             // 结束录制视频
-            if (encoder instanceof MediaVideoEncoder) {
+            if (encoder instanceof MediaVideoEncoderRunable) {
                 mCameraView.setVideoEncoder(null);
             }
         }

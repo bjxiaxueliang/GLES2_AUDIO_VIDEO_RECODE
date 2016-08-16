@@ -14,7 +14,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.serenegiant.encoder.MediaVideoEncoder;
+import com.serenegiant.encoder.MediaVideoEncoderRunable;
 import com.serenegiant.glutils.GLDrawer2D;
 
 import java.io.IOException;
@@ -125,7 +125,7 @@ public final class CameraGLView extends GLSurfaceView {
      *
      * @param encoder
      */
-    public void setVideoEncoder(final MediaVideoEncoder encoder) {
+    public void setVideoEncoder(final MediaVideoEncoderRunable encoder) {
 
         queueEvent(new Runnable() {
             @Override
@@ -164,7 +164,7 @@ public final class CameraGLView extends GLSurfaceView {
         private GLDrawer2D mDrawer;
         private final float[] mStMatrix = new float[16];
         private final float[] mMvpMatrix = new float[16];
-        private MediaVideoEncoder mVideoEncoder;
+        private MediaVideoEncoderRunable mVideoEncoder;
 
         public CameraSurfaceRenderer(final CameraGLView parent) {
 
