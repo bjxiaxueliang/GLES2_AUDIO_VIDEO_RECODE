@@ -10,7 +10,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 
 import com.serenegiant.encoder.MediaAudioEncoder;
-import com.serenegiant.encoder.MediaEncoder;
+import com.serenegiant.encoder.MediaEncoderRunable;
 import com.serenegiant.encoder.MediaMuxerWrapper;
 import com.serenegiant.encoder.MediaVideoEncoder;
 
@@ -115,9 +115,9 @@ public class CameraFragment extends Fragment {
     /**
      * callback methods from encoder
      */
-    private final MediaEncoder.MediaEncoderListener mMediaEncoderListener = new MediaEncoder.MediaEncoderListener() {
+    private final MediaEncoderRunable.MediaEncoderListener mMediaEncoderListener = new MediaEncoderRunable.MediaEncoderListener() {
         @Override
-        public void onPrepared(final MediaEncoder encoder) {
+        public void onPrepared(final MediaEncoderRunable encoder) {
             // 开始录制视频
             if (encoder instanceof MediaVideoEncoder) {
                 mCameraView.setVideoEncoder((MediaVideoEncoder) encoder);
@@ -125,7 +125,7 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
-        public void onStopped(final MediaEncoder encoder) {
+        public void onStopped(final MediaEncoderRunable encoder) {
             // 结束录制视频
             if (encoder instanceof MediaVideoEncoder) {
                 mCameraView.setVideoEncoder(null);

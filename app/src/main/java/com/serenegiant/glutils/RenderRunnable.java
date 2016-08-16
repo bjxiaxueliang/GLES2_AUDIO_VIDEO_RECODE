@@ -21,7 +21,11 @@ public final class RenderRunnable implements Runnable {
     private float[] mMatrix = new float[32];
 
     private boolean mRequestSetEglContext;
+
+    // 是否需要释放资源
     private boolean mRequestRelease;
+
+    // 需要绘制的次数
     private int mRequestDraw;
 
     /**
@@ -57,7 +61,7 @@ public final class RenderRunnable implements Runnable {
         }
         //
         synchronized (mSync) {
-            //
+            // 释放资源
             if (mRequestRelease) {
                 return;
             }
@@ -94,10 +98,13 @@ public final class RenderRunnable implements Runnable {
      */
     public final void draw(final int texId, final float[] texMatrix, final float[] mvpMatrix) {
         synchronized (mSync) {
+            // 释放资源
             if (mRequestRelease) {
                 return;
             }
+            //
             mTexId = texId;
+            //
             if ((texMatrix != null) && (texMatrix.length >= 16)) {
                 System.arraycopy(texMatrix, 0, mMatrix, 0, 16);
             } else {
@@ -143,9 +150,15 @@ public final class RenderRunnable implements Runnable {
             mSync.notifyAll();
         }
         boolean localRequestDraw;
+        // 无限循环
         for (; ; ) {
+            //
             synchronized (mSync) {
-                if (mRequestRelease) break;
+                // 是否需要释放资源
+                if (mRequestRelease) {
+                    break;
+                }
+                //
                 if (mRequestSetEglContext) {
                     mRequestSetEglContext = false;
                     internalPrepare();
@@ -183,7 +196,7 @@ public final class RenderRunnable implements Runnable {
     }
 
     private final void internalPrepare() {
-
+        //
         internalRelease();
         //
         mSohuEgl = new SohuEGL(mEGLContext, mSurface);
@@ -193,9 +206,10 @@ public final class RenderRunnable implements Runnable {
         mSync.notifyAll();
     }
 
+    /**
+     *
+     */
     private final void internalRelease() {
-
-
         if (mDrawer != null) {
             mDrawer.release();
             mDrawer = null;

@@ -47,7 +47,7 @@ public class MediaMuxerWrapper {
 	private final MediaMuxer mMediaMuxer;	// API >= 18
 	private int mEncoderCount, mStatredCount;
 	private boolean mIsStarted;
-	private MediaEncoder mVideoEncoder, mAudioEncoder;
+	private MediaEncoderRunable mVideoEncoder, mAudioEncoder;
 
 	/**
 	 * Constructor
@@ -103,7 +103,7 @@ public class MediaMuxerWrapper {
 	 * assign encoder to this calss. this is called from encoder.
 	 * @param encoder instance of MediaVideoEncoder or MediaAudioEncoder
 	 */
-	/*package*/ void addEncoder(final MediaEncoder encoder) {
+	/*package*/ void addEncoder(final MediaEncoderRunable encoder) {
 		if (encoder instanceof MediaVideoEncoder) {
 			if (mVideoEncoder != null)
 				throw new IllegalArgumentException("Video encoder already added.");

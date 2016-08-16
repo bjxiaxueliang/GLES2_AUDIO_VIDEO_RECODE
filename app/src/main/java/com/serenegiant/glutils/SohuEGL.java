@@ -14,7 +14,7 @@ import android.view.SurfaceView;
 import com.serenegiant.LogUtils;
 
 /**
- *
+ * EGL 相关配置
  */
 public class SohuEGL {
 

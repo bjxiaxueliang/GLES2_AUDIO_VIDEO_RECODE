@@ -34,7 +34,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class MediaAudioEncoder extends MediaEncoder {
+public class MediaAudioEncoder extends MediaEncoderRunable {
 
     private static final String TAG = "MediaAudioEncoder";
 

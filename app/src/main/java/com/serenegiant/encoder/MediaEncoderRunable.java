@@ -11,18 +11,16 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 
-public abstract class MediaEncoder implements Runnable {
+public abstract class MediaEncoderRunable implements Runnable {
 
-    private static final String TAG = MediaEncoder.class.getSimpleName();
+    private static final String TAG = MediaEncoderRunable.class.getSimpleName();
 
     protected static final int TIMEOUT_USEC = 10000;    // 10[msec]
-    protected static final int MSG_FRAME_AVAILABLE = 1;
-    protected static final int MSG_STOP_RECORDING = 9;
 
     public interface MediaEncoderListener {
-        public void onPrepared(MediaEncoder encoder);
+        public void onPrepared(MediaEncoderRunable encoder);
 
-        public void onStopped(MediaEncoder encoder);
+        public void onStopped(MediaEncoderRunable encoder);
     }
 
     protected final Object mSync = new Object();
@@ -61,14 +59,20 @@ public abstract class MediaEncoder implements Runnable {
     /**
      * BufferInfo instance for dequeuing
      */
-    private MediaCodec.BufferInfo mBufferInfo;        // API >= 16(Android4.1.2)
+    private MediaCodec.BufferInfo mBufferInfo;
 
     protected final MediaEncoderListener mListener;
 
-    public MediaEncoder(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
-        if (listener == null) throw new NullPointerException("MediaEncoderListener is null");
-        if (muxer == null) throw new NullPointerException("MediaMuxerWrapper is null");
+    public MediaEncoderRunable(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
+        if (listener == null) {
+            throw new NullPointerException("MediaEncoderListener is null");
+        }
+        if (muxer == null) {
+            throw new NullPointerException("MediaMuxerWrapper is null");
+        }
+        //
         mWeakMuxer = new WeakReference<MediaMuxerWrapper>(muxer);
+        //
         muxer.addEncoder(this);
         mListener = listener;
         synchronized (mSync) {
@@ -83,10 +87,6 @@ public abstract class MediaEncoder implements Runnable {
         }
     }
 
-    public String getOutputPath() {
-        final MediaMuxerWrapper muxer = mWeakMuxer.get();
-        return muxer != null ? muxer.getOutputPath() : null;
-    }
 
     /**
      * the method to indicate frame data is soon available or already available
@@ -94,8 +94,8 @@ public abstract class MediaEncoder implements Runnable {
      * @return return true if encoder is ready to encod.
      */
     public boolean frameAvailableSoon() {
-        LogUtils.d(TAG,"---frameAvailableSoon---");
-//    	if (DEBUG) Log.v(TAG, "frameAvailableSoon");
+        LogUtils.d(TAG, "---frameAvailableSoon---");
+//
         synchronized (mSync) {
             if (!mIsCapturing || mRequestStop) {
                 return false;
@@ -124,8 +124,9 @@ public abstract class MediaEncoder implements Runnable {
             synchronized (mSync) {
                 localRequestStop = mRequestStop;
                 localRequestDrain = (mRequestDrain > 0);
-                if (localRequestDrain)
+                if (localRequestDrain) {
                     mRequestDrain--;
+                }
             }
             if (localRequestStop) {
                 drain();
@@ -227,9 +228,6 @@ public abstract class MediaEncoder implements Runnable {
 
     protected void signalEndOfInputStream() {
 
-        // signalEndOfInputStream is only avairable for video encoding with surface
-        // and equivalent sending a empty buffer with BUFFER_FLAG_END_OF_STREAM flag.
-//		mMediaCodec.signalEndOfInputStream();	// API >= 18
         encode(null, 0, getPTSUs());
     }
 
@@ -377,8 +375,6 @@ public abstract class MediaEncoder implements Runnable {
      */
     protected long getPTSUs() {
         long result = System.nanoTime() / 1000L;
-        // presentationTimeUs should be monotonic
-        // otherwise muxer fail to write
         if (result < prevOutputPTSUs)
             result = (prevOutputPTSUs - result) + result;
         return result;
