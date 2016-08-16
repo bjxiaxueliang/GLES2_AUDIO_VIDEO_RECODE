@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">GL_AUDIO_VIDEO_RECODE</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="toggleRecordingOn">开始录制</string>
+    <string name="toggleRecordingOff">结束录制</string>
+
+</resources>
