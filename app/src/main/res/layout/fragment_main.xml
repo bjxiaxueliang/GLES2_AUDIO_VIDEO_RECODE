@@ -29,7 +29,7 @@
     android:layout_height="match_parent"
     android:background="#fdfdfd">
 
-    <com.serenegiant.audiovideosample.CameraGLView
+    <com.serenegiant.audiovideosample.GLCameraView
         android:id="@+id/cameraView"
         android:layout_width="1080px"
         android:layout_height="1080px"

@@ -1,84 +1,69 @@
 package com.serenegiant.encoder;
-/*
- * AudioVideoRecordingSample
- * Sample project to cature audio and video from internal mic/camera and save as MPEG4 file.
- *
- * Copyright (c) 2014-2015 saki t_saki@serenegiant.com
- *
- * File name: MediaAudioEncoderRunable.java
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- * All files in the folder are under this Apache License, Version 2.0.
-*/
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
-import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
-import android.util.Log;
+
+import com.serenegiant.LogUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class MediaAudioEncoderRunable extends MediaEncoderRunable {
 
-    private static final String TAG = "MediaAudioEncoderRunable";
-
+    private static final String TAG = MediaAudioEncoderRunable.class.getSimpleName();
+    //
     private static final String MIME_TYPE = "audio/mp4a-latm";
-    private static final int SAMPLE_RATE = 44100;    // 44.1[KHz] is only setting guaranteed to be available on all devices.
+    // 44.1[KHz] is only setting guaranteed to be available on all devices.
+    private static final int SAMPLE_RATE = 44100;
+    //
     private static final int BIT_RATE = 64000;
-    public static final int SAMPLES_PER_FRAME = 1024;    // AAC, bytes/frame/channel
-    public static final int FRAMES_PER_BUFFER = 25;    // AAC, frame/buffer/sec
+    // AAC, bytes/frame/channel
+    public static final int SAMPLES_PER_FRAME = 1024;
+    // AAC, frame/buffer/sec
+    public static final int FRAMES_PER_BUFFER = 25;
 
+    //
     private AudioThread mAudioThread = null;
 
-    public MediaAudioEncoderRunable(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
+    /**
+     * @param muxer
+     * @param listener
+     */
+    public MediaAudioEncoderRunable(final SohuMediaMuxerManager muxer, final MediaEncoderListener listener) {
         super(muxer, listener);
     }
 
+    /**
+     * 录制前的准备
+     *
+     * @throws IOException
+     */
     @Override
     protected void prepare() throws IOException {
 
         mTrackIndex = -1;
-        mMuxerStarted = mIsEOS = false;
-        // prepare MediaCodec for AAC encoding of audio data from inernal mic.
-        final MediaCodecInfo audioCodecInfo = selectAudioCodec(MIME_TYPE);
-        if (audioCodecInfo == null) {
-            Log.e(TAG, "Unable to find an appropriate codec for " + MIME_TYPE);
-            return;
-        }
+        mMuxerStarted = mIsEndOfStream = false;
 
-
+        // mediaFormat配置
         final MediaFormat audioFormat = MediaFormat.createAudioFormat(MIME_TYPE, SAMPLE_RATE, 1);
         audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
         audioFormat.setInteger(MediaFormat.KEY_CHANNEL_MASK, AudioFormat.CHANNEL_IN_MONO);
         audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
         audioFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);
-
-
+        //
         mMediaCodec = MediaCodec.createEncoderByType(MIME_TYPE);
         mMediaCodec.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         mMediaCodec.start();
 
-        if (mListener != null) {
+        if (mMediaEncoderListener != null) {
             try {
-                mListener.onPrepared(this);
+                mMediaEncoderListener.onPrepared(this);
             } catch (final Exception e) {
-                Log.e(TAG, "prepare:", e);
+                LogUtils.e(TAG, "prepare:", e);
             }
         }
     }
@@ -114,27 +99,46 @@ public class MediaAudioEncoderRunable extends MediaEncoderRunable {
     private class AudioThread extends Thread {
         @Override
         public void run() {
+            //
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
+            //
             try {
                 final int min_buffer_size = AudioRecord.getMinBufferSize(
-                        SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
+                        //
+                        SAMPLE_RATE,
+                        // 但声道
+                        AudioFormat.CHANNEL_IN_MONO,
+                        //
                         AudioFormat.ENCODING_PCM_16BIT);
+                //
                 int buffer_size = SAMPLES_PER_FRAME * FRAMES_PER_BUFFER;
-                if (buffer_size < min_buffer_size)
+                if (buffer_size < min_buffer_size) {
                     buffer_size = ((min_buffer_size / SAMPLES_PER_FRAME) + 1) * SAMPLES_PER_FRAME * 2;
-
+                }
+                //
                 AudioRecord audioRecord = null;
                 for (final int source : AUDIO_SOURCES) {
                     try {
                         audioRecord = new AudioRecord(
-                                source, SAMPLE_RATE,
-                                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, buffer_size);
-                        if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED)
+                                source,
+                                //
+                                SAMPLE_RATE,
+                                // 单声道
+                                AudioFormat.CHANNEL_IN_MONO,
+                                //
+                                AudioFormat.ENCODING_PCM_16BIT,
+                                //
+                                buffer_size);
+                        //
+                        if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
                             audioRecord = null;
+                        }
                     } catch (final Exception e) {
                         audioRecord = null;
                     }
-                    if (audioRecord != null) break;
+                    if (audioRecord != null) {
+                        break;
+                    }
                 }
                 if (audioRecord != null) {
                     try {
@@ -144,7 +148,7 @@ public class MediaAudioEncoderRunable extends MediaEncoderRunable {
                             int readBytes;
                             audioRecord.startRecording();
                             try {
-                                for (; mIsCapturing && !mRequestStop && !mIsEOS; ) {
+                                for (; mIsCapturing && !mRequestStop && !mIsEndOfStream; ) {
                                     // read audio data from internal mic
                                     buf.clear();
                                     readBytes = audioRecord.read(buf, SAMPLES_PER_FRAME);
@@ -165,44 +169,13 @@ public class MediaAudioEncoderRunable extends MediaEncoderRunable {
                         audioRecord.release();
                     }
                 } else {
-                    Log.e(TAG, "failed to initialize AudioRecord");
+                    LogUtils.e(TAG, "failed to initialize AudioRecord");
                 }
             } catch (final Exception e) {
-                Log.e(TAG, "AudioThread#run", e);
+                LogUtils.e(TAG, "AudioThread#run", e);
             }
 
         }
-    }
-
-    /**
-     * select the first codec that match a specific MIME type
-     *
-     * @param mimeType
-     * @return
-     */
-    private static final MediaCodecInfo selectAudioCodec(final String mimeType) {
-
-
-        MediaCodecInfo result = null;
-        // get the list of available codecs
-        final int numCodecs = MediaCodecList.getCodecCount();
-        for (int i = 0; i < numCodecs; i++) {
-            final MediaCodecInfo codecInfo = MediaCodecList.getCodecInfoAt(i);
-            if (!codecInfo.isEncoder()) {    // skipp decoder
-                continue;
-            }
-            final String[] types = codecInfo.getSupportedTypes();
-            for (int j = 0; j < types.length; j++) {
-
-                if (types[j].equalsIgnoreCase(mimeType)) {
-                    if (result == null) {
-                        result = codecInfo;
-                        break;
-                    }
-                }
-            }
-        }
-        return result;
     }
 
 }

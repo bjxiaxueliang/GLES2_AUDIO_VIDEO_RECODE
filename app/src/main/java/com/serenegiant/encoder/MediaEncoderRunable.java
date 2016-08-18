@@ -3,12 +3,10 @@ package com.serenegiant.encoder;
 
 import android.media.MediaCodec;
 import android.media.MediaFormat;
-import android.util.Log;
 
 import com.serenegiant.LogUtils;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 
 public abstract class MediaEncoderRunable implements Runnable {
@@ -39,7 +37,7 @@ public abstract class MediaEncoderRunable implements Runnable {
     /**
      * Flag that indicate encoder received EOS(End Of Stream)
      */
-    protected boolean mIsEOS;
+    protected boolean mIsEndOfStream;
     /**
      * Flag the indicate the muxer is running
      */
@@ -55,26 +53,40 @@ public abstract class MediaEncoderRunable implements Runnable {
     /**
      * Weak refarence of MediaMuxerWarapper instance
      */
-    protected final WeakReference<MediaMuxerWrapper> mWeakMuxer;
+    protected SohuMediaMuxerManager mSohuMediaMuxerManager;
     /**
      * BufferInfo instance for dequeuing
      */
     private MediaCodec.BufferInfo mBufferInfo;
 
-    protected final MediaEncoderListener mListener;
 
-    public MediaEncoderRunable(final MediaMuxerWrapper muxer, final MediaEncoderListener listener) {
-        if (listener == null) {
+    /**
+     *
+     */
+    protected final MediaEncoderListener mMediaEncoderListener;
+
+
+    /**
+     * 构造方法
+     *
+     * @param mediaMuxerManager
+     * @param mediaEncoderListener
+     */
+    public MediaEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
+        if (mediaEncoderListener == null) {
             throw new NullPointerException("MediaEncoderListener is null");
         }
-        if (muxer == null) {
+        if (mediaMuxerManager == null) {
             throw new NullPointerException("MediaMuxerWrapper is null");
         }
         //
-        mWeakMuxer = new WeakReference<MediaMuxerWrapper>(muxer);
+        this.mSohuMediaMuxerManager = mediaMuxerManager;
+        this.mMediaEncoderListener = mediaEncoderListener;
         //
-        muxer.addEncoder(this);
-        mListener = listener;
+        //
+        this.mSohuMediaMuxerManager.addEncoder(this);
+
+        //
         synchronized (mSync) {
             // create BufferInfo here for effectiveness(to reduce GC)
             mBufferInfo = new MediaCodec.BufferInfo();
@@ -95,7 +107,6 @@ public abstract class MediaEncoderRunable implements Runnable {
      */
     public boolean frameAvailableSoon() {
         LogUtils.d(TAG, "---frameAvailableSoon---");
-//
         synchronized (mSync) {
             if (!mIsCapturing || mRequestStop) {
                 return false;
@@ -111,7 +122,7 @@ public abstract class MediaEncoderRunable implements Runnable {
      */
     @Override
     public void run() {
-//		android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
+        //
         synchronized (mSync) {
             mRequestStop = false;
             mRequestDrain = 0;
@@ -129,17 +140,17 @@ public abstract class MediaEncoderRunable implements Runnable {
                 }
             }
             if (localRequestStop) {
-                drain();
+                drainEncoder();
                 // request stop recording
                 signalEndOfInputStream();
                 // process output data again for EOS signale
-                drain();
+                drainEncoder();
                 // release all related objects
                 release();
                 break;
             }
             if (localRequestDrain) {
-                drain();
+                drainEncoder();
             } else {
                 synchronized (mSync) {
                     try {
@@ -157,15 +168,18 @@ public abstract class MediaEncoderRunable implements Runnable {
         }
     }
 
-    /*
-    * prepareing method for each sub class
-    * this method should be implemented in sub class, so set this as abstract method
-    * @throws IOException
-    */
-   /*package*/
+
+    /**
+     * 目前在主线程被调用
+     *
+     * @throws IOException
+     */
     abstract void prepare() throws IOException;
 
-    /*package*/ void startRecording() {
+    /**
+     * 目前主线程调用
+     */
+    void startRecording() {
 
         synchronized (mSync) {
             mIsCapturing = true;
@@ -174,24 +188,20 @@ public abstract class MediaEncoderRunable implements Runnable {
         }
     }
 
-    /**
-     * the method to request stop encoding
-     */
-    /*package*/ void stopRecording() {
 
+    /**
+     * 停止录制(目前在主线程调用)
+     */
+    void stopRecording() {
         synchronized (mSync) {
             if (!mIsCapturing || mRequestStop) {
                 return;
             }
-            mRequestStop = true;    // for rejecting newer frame
+            mRequestStop = true;
             mSync.notifyAll();
-            // We can not know when the encoding and writing finish.
-            // so we return immediately after request to avoid delay of caller thread
         }
     }
 
-//********************************************************************************
-//********************************************************************************
 
     /**
      * Release all releated objects
@@ -199,9 +209,9 @@ public abstract class MediaEncoderRunable implements Runnable {
     protected void release() {
 
         try {
-            mListener.onStopped(this);
+            mMediaEncoderListener.onStopped(this);
         } catch (final Exception e) {
-            Log.e(TAG, "failed onStopped", e);
+            e.printStackTrace();
         }
         mIsCapturing = false;
         if (mMediaCodec != null) {
@@ -210,16 +220,16 @@ public abstract class MediaEncoderRunable implements Runnable {
                 mMediaCodec.release();
                 mMediaCodec = null;
             } catch (final Exception e) {
-                Log.e(TAG, "failed releasing MediaCodec", e);
+                e.printStackTrace();
             }
         }
         if (mMuxerStarted) {
-            final MediaMuxerWrapper muxer = mWeakMuxer != null ? mWeakMuxer.get() : null;
+            final SohuMediaMuxerManager muxer = mSohuMediaMuxerManager;
             if (muxer != null) {
                 try {
                     muxer.stop();
                 } catch (final Exception e) {
-                    Log.e(TAG, "failed stopping muxer", e);
+                    e.printStackTrace();
                 }
             }
         }
@@ -239,84 +249,98 @@ public abstract class MediaEncoderRunable implements Runnable {
      * @param presentationTimeUs
      */
     protected void encode(final ByteBuffer buffer, final int length, final long presentationTimeUs) {
-        if (!mIsCapturing) return;
+        //
+        if (!mIsCapturing) {
+            return;
+        }
+        //
         final ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
+        //
         while (mIsCapturing) {
             final int inputBufferIndex = mMediaCodec.dequeueInputBuffer(TIMEOUT_USEC);
             if (inputBufferIndex >= 0) {
                 final ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                 inputBuffer.clear();
+                //
                 if (buffer != null) {
                     inputBuffer.put(buffer);
                 }
-//	            if (DEBUG) Log.v(TAG, "encode:queueInputBuffer");
                 if (length <= 0) {
-                    // send EOS
-                    mIsEOS = true;
-
-                    mMediaCodec.queueInputBuffer(inputBufferIndex, 0, 0,
-                            presentationTimeUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                    mIsEndOfStream = true;
+                    //
+                    mMediaCodec.queueInputBuffer(
+                            //
+                            inputBufferIndex, 0, 0,
+                            //
+                            presentationTimeUs,
+                            //
+                            MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                     break;
                 } else {
-                    mMediaCodec.queueInputBuffer(inputBufferIndex, 0, length,
+                    mMediaCodec.queueInputBuffer(
+                            //
+                            inputBufferIndex, 0, length,
                             presentationTimeUs, 0);
                 }
                 break;
             } else if (inputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
-                // wait for MediaCodec encoder is ready to encode
-                // nothing to do here because MediaCodec#dequeueInputBuffer(TIMEOUT_USEC)
-                // will wait for maximum TIMEOUT_USEC(10msec) on each call
             }
         }
     }
 
+
     /**
-     * drain encoded data and write them to muxer
+     * mEncoder从缓冲区取数据，然后交给mMuxer编码
      */
-    protected void drain() {
-        if (mMediaCodec == null) return;
-        ByteBuffer[] encoderOutputBuffers = mMediaCodec.getOutputBuffers();
-        int encoderStatus, count = 0;
-        final MediaMuxerWrapper muxer = mWeakMuxer.get();
-        if (muxer == null) {
-//        	throw new NullPointerException("muxer is unexpectedly null");
-            Log.w(TAG, "muxer is unexpectedly null");
+    protected void drainEncoder() {
+        if (mMediaCodec == null) {
             return;
         }
+
+        //
+        int count = 0;
+
+        if (mSohuMediaMuxerManager == null) {
+            return;
+        }
+
+        //拿到输出缓冲区,用于取到编码后的数据
+        ByteBuffer[] encoderOutputBuffers = mMediaCodec.getOutputBuffers();
+
         LOOP:
         while (mIsCapturing) {
-            // get encoded data with maximum timeout duration of TIMEOUT_USEC(=10[msec])
-            encoderStatus = mMediaCodec.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
+            //拿到输出缓冲区的索引
+            int encoderStatus = mMediaCodec.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
             if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
-                // wait 5 counts(=TIMEOUT_USEC x 5 = 50msec) until data/EOS come
-                if (!mIsEOS) {
-                    if (++count > 5)
-                        break LOOP;        // out of while
+                // no output available yet
+                if (!mIsEndOfStream) {
+                    if (++count > 5) {
+                        // out of while
+                        break LOOP;
+                    }
                 }
             } else if (encoderStatus == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-
                 // this shoud not come when encoding
+                //拿到输出缓冲区,用于取到编码后的数据
                 encoderOutputBuffers = mMediaCodec.getOutputBuffers();
             } else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-
-                // this status indicate the output format of codec is changed
-                // this should come only once before actual encoded data
-                // but this status never come on Android4.3 or less
-                // and in that case, you should treat when MediaCodec.BUFFER_FLAG_CODEC_CONFIG come.
-                if (mMuxerStarted) {    // second time request is error
+                // should happen before receiving buffers, and should only happen once
+                if (mMuxerStarted) {
                     throw new RuntimeException("format changed twice");
                 }
                 // get output format from codec and pass them to muxer
-                // getOutputFormat should be called after INFO_OUTPUT_FORMAT_CHANGED otherwise crash.
-                final MediaFormat format = mMediaCodec.getOutputFormat(); // API >= 16
-                mTrackIndex = muxer.addTrack(format);
+                final MediaFormat format = mMediaCodec.getOutputFormat();
+                //
+                mTrackIndex = mSohuMediaMuxerManager.addTrack(format);
+                //
                 mMuxerStarted = true;
-                if (!muxer.start()) {
+                //
+                if (!mSohuMediaMuxerManager.start()) {
                     // we should wait until muxer is ready
-                    synchronized (muxer) {
-                        while (!muxer.isStarted())
+                    synchronized (mSohuMediaMuxerManager) {
+                        while (!mSohuMediaMuxerManager.isStarted())
                             try {
-                                muxer.wait(100);
+                                mSohuMediaMuxerManager.wait(100);
                             } catch (final InterruptedException e) {
                                 break LOOP;
                             }
@@ -326,20 +350,17 @@ public abstract class MediaEncoderRunable implements Runnable {
                 // unexpected status
 
             } else {
+                //获取解码后的数据
                 final ByteBuffer encodedData = encoderOutputBuffers[encoderStatus];
                 if (encodedData == null) {
                     // this never should come...may be a MediaCodec internal error
                     throw new RuntimeException("encoderOutputBuffer " + encoderStatus + " was null");
                 }
+                //
                 if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                    // You shoud set output format to muxer here when you target Android4.3 or less
-                    // but MediaCodec#getOutputFormat can not call here(because INFO_OUTPUT_FORMAT_CHANGED don't come yet)
-                    // therefor we should expand and prepare output format from buffer data.
-                    // This sample is for API>=18(>=Android 4.3), just ignore this flag here
-
                     mBufferInfo.size = 0;
                 }
-
+                //
                 if (mBufferInfo.size != 0) {
                     // encoded data is ready, clear waiting counter
                     count = 0;
@@ -349,11 +370,13 @@ public abstract class MediaEncoderRunable implements Runnable {
                     }
                     // write encoded data to muxer(need to adjust presentationTimeUs.
                     mBufferInfo.presentationTimeUs = getPTSUs();
-                    muxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
+                    // 编码
+                    mSohuMediaMuxerManager.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
                     prevOutputPTSUs = mBufferInfo.presentationTimeUs;
                 }
                 // return buffer to encoder
                 mMediaCodec.releaseOutputBuffer(encoderStatus, false);
+                //
                 if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     // when EOS come.
                     mIsCapturing = false;

@@ -14,9 +14,9 @@ import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.Locale;
 
-public class MediaMuxerWrapper {
+public class SohuMediaMuxerManager {
 
-    private static final String TAG = MediaMuxerWrapper.class.getSimpleName();
+    private static final String TAG = SohuMediaMuxerManager.class.getSimpleName();
 
     private static final String DIR_NAME = "GL_AUDIO_VIDEO_RECODE";
     private static final SimpleDateFormat mDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US);
@@ -33,8 +33,10 @@ public class MediaMuxerWrapper {
      * @param ext extension of output file
      * @throws IOException
      */
-    public MediaMuxerWrapper(String ext) throws IOException {
-        if (TextUtils.isEmpty(ext)) ext = ".mp4";
+    public SohuMediaMuxerManager(String ext) throws IOException {
+        if (TextUtils.isEmpty(ext)) {
+            ext = ".mp4";
+        }
         try {
             mOutputPath = getCaptureFile(ext).toString();
         } catch (final NullPointerException e) {
@@ -45,7 +47,11 @@ public class MediaMuxerWrapper {
         mIsStarted = false;
     }
 
-
+    /**
+     * 目前在主线程被调用
+     *
+     * @throws IOException
+     */
     public void prepare() throws IOException {
         if (mVideoEncoder != null)
             mVideoEncoder.prepare();
@@ -53,6 +59,9 @@ public class MediaMuxerWrapper {
             mAudioEncoder.prepare();
     }
 
+    /**
+     * 目前主线程调用
+     */
     public void startRecording() {
         if (mVideoEncoder != null)
             mVideoEncoder.startRecording();
@@ -72,7 +81,6 @@ public class MediaMuxerWrapper {
     public synchronized boolean isStarted() {
         return mIsStarted;
     }
-
 
 
     /**

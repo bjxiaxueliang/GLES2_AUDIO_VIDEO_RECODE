@@ -1,4 +1,4 @@
-package com.serenegiant.glutils;
+package com.serenegiant.encoder;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
@@ -16,9 +16,9 @@ import com.serenegiant.LogUtils;
 /**
  * EGL 相关配置
  */
-public class SohuEGL {
+public class SohuEGLManager {
 
-    private static final String TAG = SohuEGL.class.getSimpleName();
+    private static final String TAG = SohuEGLManager.class.getSimpleName();
     //
     private static final int EGL_RECORDABLE_ANDROID = 0x3142;
     //
@@ -32,7 +32,7 @@ public class SohuEGL {
      *
      * @param eglContext
      */
-    public SohuEGL(final EGLContext eglContext, final Object surface) {
+    public SohuEGLManager(final EGLContext eglContext, final Object surface) {
 
         initMyEGL(eglContext, surface);
     }

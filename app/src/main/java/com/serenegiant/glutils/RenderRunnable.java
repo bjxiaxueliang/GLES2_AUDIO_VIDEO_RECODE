@@ -8,6 +8,8 @@ import android.text.TextUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
+import com.serenegiant.encoder.SohuEGLManager;
+
 
 public final class RenderRunnable implements Runnable {
 
@@ -84,6 +86,8 @@ public final class RenderRunnable implements Runnable {
     }
 
     /**
+     * 运行在GLThread
+     *
      * @param tex_matrix
      * @param mvp_matrix
      */
@@ -92,6 +96,8 @@ public final class RenderRunnable implements Runnable {
     }
 
     /**
+     * 运行在GLThread
+     *
      * @param texId
      * @param texMatrix
      * @param mvpMatrix
@@ -138,7 +144,7 @@ public final class RenderRunnable implements Runnable {
         }
     }
 
-    private SohuEGL mSohuEgl;
+    private SohuEGLManager mSohuEgl;
     private GLDrawer2D mDrawer;
 
     @Override
@@ -199,7 +205,7 @@ public final class RenderRunnable implements Runnable {
         //
         internalRelease();
         //
-        mSohuEgl = new SohuEGL(mEGLContext, mSurface);
+        mSohuEgl = new SohuEGLManager(mEGLContext, mSurface);
         //
         mDrawer = new GLDrawer2D();
         mSurface = null;
