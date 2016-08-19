@@ -1,4 +1,4 @@
-package com.serenegiant.encoder;
+package com.serenegiant.audiovideosample.media_muxer;
 
 
 import android.media.MediaCodec;
@@ -6,6 +6,10 @@ import android.media.MediaFormat;
 import android.media.MediaMuxer;
 import android.os.Environment;
 import android.text.TextUtils;
+
+import com.serenegiant.audiovideosample.media_encoder.BaseMediaEncoderRunable;
+import com.serenegiant.audiovideosample.media_encoder.MediaAudioEncoderRunable;
+import com.serenegiant.audiovideosample.media_encoder.MediaVideoEncoderRunable;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,13 +23,15 @@ public class SohuMediaMuxerManager {
     private static final String TAG = SohuMediaMuxerManager.class.getSimpleName();
 
     private static final String DIR_NAME = "GL_AUDIO_VIDEO_RECODE";
+
     private static final SimpleDateFormat mDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US);
 
+    // 输出文件路径
     private String mOutputPath;
-    private final MediaMuxer mMediaMuxer;    // API >= 18
+    private final MediaMuxer mMediaMuxer;
     private int mEncoderCount, mStatredCount;
     private boolean mIsStarted;
-    private MediaEncoderRunable mVideoEncoder, mAudioEncoder;
+    private BaseMediaEncoderRunable mVideoEncoder, mAudioEncoder;
 
     /**
      * Constructor
@@ -38,12 +44,17 @@ public class SohuMediaMuxerManager {
             ext = ".mp4";
         }
         try {
+            // 输出文件路径
             mOutputPath = getCaptureFile(ext).toString();
+            //
         } catch (final NullPointerException e) {
             throw new RuntimeException("This app has no permission of writing external storage");
         }
+        // 编码器
         mMediaMuxer = new MediaMuxer(mOutputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+        //
         mEncoderCount = mStatredCount = 0;
+        //
         mIsStarted = false;
     }
 
@@ -88,7 +99,7 @@ public class SohuMediaMuxerManager {
      *
      * @param encoder instance of MediaVideoEncoderRunable or MediaAudioEncoderRunable
      */
-    void addEncoder(final MediaEncoderRunable encoder) {
+    public void addEncoder(final BaseMediaEncoderRunable encoder) {
         if (encoder instanceof MediaVideoEncoderRunable) {
             if (mVideoEncoder != null) {
                 throw new IllegalArgumentException("Video encoder already added.");
@@ -111,7 +122,7 @@ public class SohuMediaMuxerManager {
      * @return true when muxer is ready to write
      */
     /*package*/
-    synchronized boolean start() {
+    public synchronized boolean start() {
 
         mStatredCount++;
         if ((mEncoderCount > 0) && (mStatredCount == mEncoderCount)) {
@@ -127,7 +138,7 @@ public class SohuMediaMuxerManager {
      * request stop recording from encoder when encoder received EOS
      */
     /*package*/
-    synchronized void stop() {
+    public synchronized void stop() {
 
         mStatredCount--;
         if ((mEncoderCount > 0) && (mStatredCount <= 0)) {
@@ -143,7 +154,7 @@ public class SohuMediaMuxerManager {
      * @param format
      * @return minus value indicate error
      */
-    synchronized int addTrack(final MediaFormat format) {
+    public synchronized int addTrack(final MediaFormat format) {
         if (mIsStarted) {
             throw new IllegalStateException("muxer already started");
         }
@@ -160,7 +171,7 @@ public class SohuMediaMuxerManager {
      * @param byteBuf
      * @param bufferInfo
      */
-    synchronized void writeSampleData(final int trackIndex, final ByteBuffer byteBuf, final MediaCodec.BufferInfo bufferInfo) {
+    public synchronized void writeSampleData(final int trackIndex, final ByteBuffer byteBuf, final MediaCodec.BufferInfo bufferInfo) {
         if (mStatredCount > 0) {
             mMediaMuxer.writeSampleData(trackIndex, byteBuf, bufferInfo);
         }

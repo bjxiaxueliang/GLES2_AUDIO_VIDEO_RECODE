@@ -1,4 +1,4 @@
-package com.serenegiant.encoder;
+package com.serenegiant.audiovideosample.media_encoder;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -7,12 +7,13 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
 
-import com.serenegiant.LogUtils;
+import com.serenegiant.audiovideosample.LogUtils;
+import com.serenegiant.audiovideosample.media_muxer.SohuMediaMuxerManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class MediaAudioEncoderRunable extends MediaEncoderRunable {
+public class MediaAudioEncoderRunable extends BaseMediaEncoderRunable {
 
     private static final String TAG = MediaAudioEncoderRunable.class.getSimpleName();
     //
@@ -30,11 +31,13 @@ public class MediaAudioEncoderRunable extends MediaEncoderRunable {
     private AudioThread mAudioThread = null;
 
     /**
-     * @param muxer
-     * @param listener
+     * 构造方法，父类中开启了该线程
+     *
+     * @param mediaMuxerManager
+     * @param mediaEncoderListener
      */
-    public MediaAudioEncoderRunable(final SohuMediaMuxerManager muxer, final MediaEncoderListener listener) {
-        super(muxer, listener);
+    public MediaAudioEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
+        super(mediaMuxerManager, mediaEncoderListener);
     }
 
     /**
@@ -43,7 +46,7 @@ public class MediaAudioEncoderRunable extends MediaEncoderRunable {
      * @throws IOException
      */
     @Override
-    protected void prepare() throws IOException {
+    public void prepare() throws IOException {
 
         mTrackIndex = -1;
         mMuxerStarted = mIsEndOfStream = false;
@@ -69,7 +72,7 @@ public class MediaAudioEncoderRunable extends MediaEncoderRunable {
     }
 
     @Override
-    protected void startRecording() {
+    public void startRecording() {
         super.startRecording();
         // create and execute audio capturing thread using internal mic
         if (mAudioThread == null) {

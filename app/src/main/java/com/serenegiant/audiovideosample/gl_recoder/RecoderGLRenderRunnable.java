@@ -1,4 +1,4 @@
-package com.serenegiant.glutils;
+package com.serenegiant.audiovideosample.gl_recoder;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.EGLContext;
@@ -8,12 +8,16 @@ import android.text.TextUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
-import com.serenegiant.encoder.SohuEGLManager;
+import com.serenegiant.audiovideosample.egl.SohuEGLManager;
+import com.serenegiant.audiovideosample.gl_widget.GLDrawer2D;
 
 
-public final class RenderRunnable implements Runnable {
+/**
+ * RenderRunnable
+ */
+public final class RecoderGLRenderRunnable implements Runnable {
 
-    private static final String TAG = RenderRunnable.class.getSimpleName();
+    private static final String TAG = RecoderGLRenderRunnable.class.getSimpleName();
 
     private final Object mSync = new Object();
     private EGLContext mEGLContext;
@@ -36,9 +40,9 @@ public final class RenderRunnable implements Runnable {
      * @param name
      * @return
      */
-    public static final RenderRunnable createHandler(final String name) {
+    public static final RecoderGLRenderRunnable createHandler(final String name) {
 
-        final RenderRunnable handler = new RenderRunnable();
+        final RecoderGLRenderRunnable handler = new RecoderGLRenderRunnable();
         synchronized (handler.mSync) {
             new Thread(handler, !TextUtils.isEmpty(name) ? name : TAG).start();
             try {
@@ -184,10 +188,12 @@ public final class RenderRunnable implements Runnable {
                     mSohuEgl.swapMyEGLBuffers();
                 }
             } else {
+                //--------进入等待状态-----------
                 synchronized (mSync) {
                     try {
                         mSync.wait();
                     } catch (final InterruptedException e) {
+                        e.printStackTrace();
                         break;
                     }
                 }
@@ -216,10 +222,6 @@ public final class RenderRunnable implements Runnable {
      *
      */
     private final void internalRelease() {
-        if (mDrawer != null) {
-            mDrawer.release();
-            mDrawer = null;
-        }
         if (mSohuEgl != null) {
             mSohuEgl.release();
             mSohuEgl = null;

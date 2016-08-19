@@ -1,24 +1,28 @@
-package com.serenegiant.encoder;
+package com.serenegiant.audiovideosample.media_encoder;
 
 
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 
-import com.serenegiant.LogUtils;
+import com.serenegiant.audiovideosample.LogUtils;
+import com.serenegiant.audiovideosample.media_muxer.SohuMediaMuxerManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public abstract class MediaEncoderRunable implements Runnable {
+/**
+ *
+ */
+public abstract class BaseMediaEncoderRunable implements Runnable {
 
-    private static final String TAG = MediaEncoderRunable.class.getSimpleName();
+    private static final String TAG = BaseMediaEncoderRunable.class.getSimpleName();
 
     protected static final int TIMEOUT_USEC = 10000;    // 10[msec]
 
     public interface MediaEncoderListener {
-        public void onPrepared(MediaEncoderRunable encoder);
+        public void onPrepared(BaseMediaEncoderRunable encoder);
 
-        public void onStopped(MediaEncoderRunable encoder);
+        public void onStopped(BaseMediaEncoderRunable encoder);
     }
 
     protected final Object mSync = new Object();
@@ -72,7 +76,7 @@ public abstract class MediaEncoderRunable implements Runnable {
      * @param mediaMuxerManager
      * @param mediaEncoderListener
      */
-    public MediaEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
+    public BaseMediaEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
         if (mediaEncoderListener == null) {
             throw new NullPointerException("MediaEncoderListener is null");
         }
@@ -152,10 +156,12 @@ public abstract class MediaEncoderRunable implements Runnable {
             if (localRequestDrain) {
                 drainEncoder();
             } else {
+                // ------线程进入等待状态---------
                 synchronized (mSync) {
                     try {
                         mSync.wait();
                     } catch (final InterruptedException e) {
+                        e.printStackTrace();
                         break;
                     }
                 }
@@ -174,12 +180,12 @@ public abstract class MediaEncoderRunable implements Runnable {
      *
      * @throws IOException
      */
-    abstract void prepare() throws IOException;
+    public abstract void prepare() throws IOException;
 
     /**
      * 目前主线程调用
      */
-    void startRecording() {
+    public void startRecording() {
 
         synchronized (mSync) {
             mIsCapturing = true;
@@ -192,7 +198,7 @@ public abstract class MediaEncoderRunable implements Runnable {
     /**
      * 停止录制(目前在主线程调用)
      */
-    void stopRecording() {
+    public void stopRecording() {
         synchronized (mSync) {
             if (!mIsCapturing || mRequestStop) {
                 return;

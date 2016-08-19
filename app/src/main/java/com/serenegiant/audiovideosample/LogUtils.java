@@ -1,4 +1,4 @@
-package com.serenegiant;
+package com.serenegiant.audiovideosample;
 
 import android.util.Log;
 

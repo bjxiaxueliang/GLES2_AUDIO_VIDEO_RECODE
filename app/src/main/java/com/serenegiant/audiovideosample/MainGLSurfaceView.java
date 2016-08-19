@@ -14,8 +14,9 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.serenegiant.encoder.MediaVideoEncoderRunable;
-import com.serenegiant.glutils.GLDrawer2D;
+import com.serenegiant.audiovideosample.gl_util.GLTextureUtil;
+import com.serenegiant.audiovideosample.gl_widget.GLDrawer2D;
+import com.serenegiant.audiovideosample.media_encoder.MediaVideoEncoderRunable;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -30,32 +31,42 @@ import javax.microedition.khronos.opengles.GL10;
 /**
  * Opengl回显Camera数据的页面
  */
-public final class GLCameraView extends GLSurfaceView {
-    private static final String TAG = GLCameraView.class.getSimpleName();
+public final class MainGLSurfaceView extends GLSurfaceView {
+    private static final String TAG = MainGLSurfaceView.class.getSimpleName();
+
+    // render
+    private final GLSceneRenderer mRenderer;
+
+    // 渐变矩形的纹理id
+    private int mTextureId = 100;
+    // 用于与Camera绑定的 SurfaceTexture
+    private SurfaceTexture mSurfaceTexture = null;
+    //
+    private GLDrawer2D mDrawer;
 
 
-    private final GLCameraRenderer mRenderer;
     private boolean mHasSurface;
     private CameraHandler mCameraHandler = null;
 
 
-
-    public GLCameraView(final Context context) {
+    public MainGLSurfaceView(final Context context) {
         this(context, null, 0);
     }
 
-    public GLCameraView(final Context context, final AttributeSet attrs) {
+    public MainGLSurfaceView(final Context context, final AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public GLCameraView(final Context context, final AttributeSet attrs, final int defStyle) {
+    public MainGLSurfaceView(final Context context, final AttributeSet attrs, final int defStyle) {
         super(context, attrs);
-
-        mRenderer = new GLCameraRenderer(this);
+        // render
+        mRenderer = new GLSceneRenderer();
         // 2.0
         setEGLContextClientVersion(2);
         // render
         setRenderer(mRenderer);
+        // 脏渲染模式
+        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
     }
 
     @Override
@@ -82,14 +93,13 @@ public final class GLCameraView extends GLSurfaceView {
     }
 
 
-
     /**
      * surfaceTexture
      *
      * @return
      */
     public SurfaceTexture getSurfaceTexture() {
-        return mRenderer != null ? mRenderer.mSTexture : null;
+        return mSurfaceTexture;
     }
 
     @Override
@@ -106,7 +116,7 @@ public final class GLCameraView extends GLSurfaceView {
     }
 
     /**
-     * 开始录制视频时，由异步线程回调回来的
+     * 开始录制视频时，由主线程||异步线程回调回来的
      *
      * @param mediaVideoEncoderRunable
      */
@@ -118,7 +128,7 @@ public final class GLCameraView extends GLSurfaceView {
                 synchronized (mRenderer) {
                     // 这里是获取了一个GLThread的EGL14.eglGetCurrentContext()
                     if (mediaVideoEncoderRunable != null) {
-                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), mRenderer.mTexId);
+                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), mTextureId);
                     }
                     mRenderer.mMediaVideoEncoderRunable = mediaVideoEncoderRunable;
                 }
@@ -140,42 +150,43 @@ public final class GLCameraView extends GLSurfaceView {
     /**
      * GLSurfaceView Renderer
      */
-    private static final class GLCameraRenderer
-            implements GLSurfaceView.Renderer,
-            SurfaceTexture.OnFrameAvailableListener {
+    private final class GLSceneRenderer
+            implements GLSurfaceView.Renderer {
 
-        private final WeakReference<GLCameraView> mWeakParent;
-        private SurfaceTexture mSTexture;
-        private int mTexId;
-        private GLDrawer2D mDrawer;
+
+
+
         private final float[] mStMatrix = new float[16];
         private final float[] mMvpMatrix = new float[16];
+
+
         private MediaVideoEncoderRunable mMediaVideoEncoderRunable;
 
-        public GLCameraRenderer(final GLCameraView parent) {
+        public GLSceneRenderer() {
 
-            mWeakParent = new WeakReference<GLCameraView>(parent);
-            // 初始化矩阵
-            Matrix.setIdentityM(mMvpMatrix, 0);
         }
 
         @Override
-        public void onSurfaceCreated(final GL10 unused, final EGLConfig config) {
-
+        public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+            // 清屏颜色为黑色
+            GLES20.glClearColor(0, 0, 0, 0);
+            // 初始化矩阵
+            Matrix.setIdentityM(mMvpMatrix, 0);
 
             // 生成纹理Id
-            mTexId = GLDrawer2D.initTex();
-            // 通过纹理Id，创建SurfaceTexture
-            mSTexture = new SurfaceTexture(mTexId);
+            mTextureId = GLTextureUtil.createOESTextureID();
+            // 通过纹理Id，创建SurfaceTexture(该mSurfaceTexture与Camera进行绑定)
+            mSurfaceTexture = new SurfaceTexture(mTextureId);
+            mSurfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
+                @Override
+                public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+                    // 请求进行下次渲染
+                    MainGLSurfaceView.this.requestRender();
+                }
+            });
             //
-            mSTexture.setOnFrameAvailableListener(this);
-            // 清屏
-            GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-            //
-            final GLCameraView parent = mWeakParent.get();
-            if (parent != null) {
-                parent.mHasSurface = true;
-            }
+            MainGLSurfaceView.this.mHasSurface = true;
+
             // create object for preview display
             mDrawer = new GLDrawer2D();
             // 矩阵初始化
@@ -187,10 +198,9 @@ public final class GLCameraView extends GLSurfaceView {
 
 
             updateViewport();
-            final GLCameraView parent = mWeakParent.get();
-            if (parent != null) {
-                parent.startPreview();
-            }
+
+            MainGLSurfaceView.this.startPreview();
+
         }
 
         /**
@@ -198,61 +208,61 @@ public final class GLCameraView extends GLSurfaceView {
          */
         public void onSurfaceDestroyed() {
 
-            if (mDrawer != null) {
-                mDrawer.release();
-                mDrawer = null;
+            if (mSurfaceTexture != null) {
+                mSurfaceTexture.release();
+                mSurfaceTexture = null;
             }
-            if (mSTexture != null) {
-                mSTexture.release();
-                mSTexture = null;
-            }
-            GLDrawer2D.deleteTex(mTexId);
+            GLTextureUtil.deleteTex(mTextureId);
         }
 
         private final void updateViewport() {
-            final GLCameraView parent = mWeakParent.get();
-            if (parent != null) {
-                final int view_width = parent.getWidth();
-                final int view_height = parent.getHeight();
-                GLES20.glViewport(0, 0, view_width, view_height);
-                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
 
-                Matrix.setIdentityM(mMvpMatrix, 0);
+            final int view_width = MainGLSurfaceView.this.getWidth();
+            final int view_height = MainGLSurfaceView.this.getHeight();
+            GLES20.glViewport(0, 0, view_width, view_height);
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
-                if (mDrawer != null) {
-                    mDrawer.setMatrix(mMvpMatrix, 0);
-                }
+
+            Matrix.setIdentityM(mMvpMatrix, 0);
+
+            if (mDrawer != null) {
+                mDrawer.setMatrix(mMvpMatrix, 0);
             }
+
         }
 
         /**
          * 有摄像头数据后requesrUpdateTex为true
          */
-        private volatile boolean requesrUpdateTex = false;
         private boolean flip = true;
 
-        /**
-         * drawing to GLSurface
-         * we set renderMode to GLSurfaceView.RENDERMODE_WHEN_DIRTY,
-         * this method is only called when #requestRender is called(= when texture is required to update)
-         * if you don't set RENDERMODE_WHEN_DIRTY, this method is called at maximum 60fps
-         */
         @Override
         public void onDrawFrame(final GL10 unused) {
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-
-            if (requesrUpdateTex) {
-                requesrUpdateTex = false;
-                // update texture(came from camera)
+            //------------取camera数据begin------------
+            // 如果camera数据可用，手动取一次
+            try {
                 // 从摄像机更新数据
-                mSTexture.updateTexImage();
-                // get texture matrix
-                mSTexture.getTransformMatrix(mStMatrix);
+                if (mSurfaceTexture != null) {
+                    mSurfaceTexture.updateTexImage();
+                    // get texture matrix
+                    mSurfaceTexture.getTransformMatrix(mStMatrix);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+            //-----------取camera数据end-------------
+
+            // 清除深度缓冲与颜色缓冲
+            GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT
+                    | GLES20.GL_COLOR_BUFFER_BIT);
+
+
             // 绘制纹理矩形
-            // draw to preview screen
-            mDrawer.draw(mTexId, mStMatrix);
+            mDrawer.draw(mTextureId, mStMatrix);
+
+            //---------------视频写入----------------
+            // 减少一半的视频数据写入
             flip = !flip;
             if (flip) {    // ~30fps
                 synchronized (this) {
@@ -262,12 +272,6 @@ public final class GLCameraView extends GLSurfaceView {
                     }
                 }
             }
-        }
-
-        @Override
-        public void onFrameAvailable(final SurfaceTexture st) {
-            // 有新的数据帧有用
-            requesrUpdateTex = true;
         }
     }
 
@@ -332,14 +336,14 @@ public final class GLCameraView extends GLSurfaceView {
      */
     private static final class CameraThread extends Thread {
         private final Object mReadyFence = new Object();
-        private final WeakReference<GLCameraView> mWeakParent;
+        private final WeakReference<MainGLSurfaceView> mWeakParent;
         private CameraHandler mHandler;
         private volatile boolean mIsRunning = false;
         private Camera mCamera;
 
-        public CameraThread(final GLCameraView parent) {
+        public CameraThread(final MainGLSurfaceView parent) {
             super("Camera thread");
-            mWeakParent = new WeakReference<GLCameraView>(parent);
+            mWeakParent = new WeakReference<MainGLSurfaceView>(parent);
         }
 
         public CameraHandler getHandler() {
@@ -381,7 +385,7 @@ public final class GLCameraView extends GLSurfaceView {
          */
         private final void startPreview(final int width, final int height) {
 
-            final GLCameraView parent = mWeakParent.get();
+            final MainGLSurfaceView parent = mWeakParent.get();
             if ((parent != null) && (mCamera == null)) {
                 // This is a sample project so just use 0 as camera ID.
                 // it is better to selecting camera is available
@@ -468,7 +472,7 @@ public final class GLCameraView extends GLSurfaceView {
                 mCamera.release();
                 mCamera = null;
             }
-            final GLCameraView parent = mWeakParent.get();
+            final MainGLSurfaceView parent = mWeakParent.get();
             if (parent == null) return;
             parent.mCameraHandler = null;
         }

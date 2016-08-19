@@ -1,4 +1,4 @@
-package com.serenegiant.encoder;
+package com.serenegiant.audiovideosample.media_encoder;
 
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
@@ -7,12 +7,13 @@ import android.opengl.EGLContext;
 import android.util.Log;
 import android.view.Surface;
 
-import com.serenegiant.LogUtils;
-import com.serenegiant.glutils.RenderRunnable;
+import com.serenegiant.audiovideosample.LogUtils;
+import com.serenegiant.audiovideosample.gl_recoder.RecoderGLRenderRunnable;
+import com.serenegiant.audiovideosample.media_muxer.SohuMediaMuxerManager;
 
 import java.io.IOException;
 
-public class MediaVideoEncoderRunable extends MediaEncoderRunable {
+public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
 
     private static final String TAG = MediaVideoEncoderRunable.class.getSimpleName();
 
@@ -25,17 +26,29 @@ public class MediaVideoEncoderRunable extends MediaEncoderRunable {
 
     private final int mWidth;
     private final int mHeight;
-    private RenderRunnable mRenderRunnable;
+    private RecoderGLRenderRunnable mRenderRunnable;
 
     // 由MediaCodec创建的输入surface
     private Surface mSurface;
 
-    public MediaVideoEncoderRunable(final SohuMediaMuxerManager muxer, final MediaEncoderListener listener, final int width, final int height) {
-        super(muxer, listener);
+    /**
+     * 构造方法,父类中，开启了该线程
+     *
+     * @param mediaMuxerManager
+     * @param mediaEncoderListener
+     * @param width
+     * @param height
+     */
+    public MediaVideoEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener, final int width, final int height) {
+        super(mediaMuxerManager, mediaEncoderListener);
         LogUtils.i(TAG, "MediaVideoEncoderRunable: ");
         mWidth = width;
         mHeight = height;
-        mRenderRunnable = RenderRunnable.createHandler(TAG);
+
+        /**
+         * 开启了一个看不到的绘制线程
+         */
+        mRenderRunnable = RecoderGLRenderRunnable.createHandler(TAG);
     }
 
     /**
@@ -56,14 +69,16 @@ public class MediaVideoEncoderRunable extends MediaEncoderRunable {
 
 
     /**
-     * 目前在主线程被调用,开始录制前的准备
+     * 开始录制前的准备(目前由SohuMediaMuxerManager在主线程调用)
      *
      * @throws IOException
      */
     @Override
-    protected void prepare() throws IOException {
+    public void prepare() throws IOException {
         LogUtils.d(TAG, "---prepare---");
+        //
         mTrackIndex = -1;
+        //
         mMuxerStarted = mIsEndOfStream = false;
 
         //-----------------MediaFormat-----------------------

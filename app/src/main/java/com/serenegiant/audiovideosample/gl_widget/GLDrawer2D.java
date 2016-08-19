@@ -1,23 +1,24 @@
-package com.serenegiant.glutils;
+package com.serenegiant.audiovideosample.gl_widget;
 
 
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
+
 /**
- * Helper class to draw to whole view using specific texture and texture matrix
+ *
  */
 public class GLDrawer2D {
-    private static final boolean DEBUG = false; // TODO set false on release
-    private static final String TAG = "GLDrawer2D";
 
-    private static final String vss
+    private static final String TAG = GLDrawer2D.class.getSimpleName();
+
+    // 定点着色器
+    private static final String vertexTex
             = "uniform mat4 uMVPMatrix;\n"
             + "uniform mat4 uTexMatrix;\n"
             + "attribute highp vec4 aPosition;\n"
@@ -28,7 +29,8 @@ public class GLDrawer2D {
             + "	gl_Position = uMVPMatrix * aPosition;\n"
             + "	vTextureCoord = (uTexMatrix * aTextureCoord).xy;\n"
             + "}\n";
-    private static final String fss
+    // 片元着色器
+    private static final String fragTex
             = "#extension GL_OES_EGL_image_external : require\n"
             + "precision mediump float;\n"
             + "uniform samplerExternalOES sTexture;\n"
@@ -36,20 +38,31 @@ public class GLDrawer2D {
             + "void main() {\n"
             + "  gl_FragColor = texture2D(sTexture, vTextureCoord);\n"
             + "}";
-    private static final float[] VERTICES = {1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, -1.0f};
+    /**
+     * 定点坐标
+     */
+    private static final float[] VERTICES = {
+            //
+            1.0f, 1.0f,
+            //
+            -1.0f, 1.0f,
+            //
+            1.0f, -1.0f,
+            //
+            -1.0f, -1.0f
+    };
 
+    /**
+     * 纹理坐标
+     */
     private static final float tempX1 = (1280 - 720) / (1280 * 2f);
     private static final float tempX2 = 1 - tempX1;
-
-
-        private static final float[] TEXCOORD = {
-                tempX1, 1.0f,     // 2 top left
-                tempX1, 0.0f,     // 0 bottom left
-                tempX2, 1.0f,     // 3 top right
-                tempX2, 0.0f     // 1 bottom right
-        };
-
-
+    private static final float[] TEXCOORD = {
+            tempX1, 1.0f,     // 2 top left
+            tempX1, 0.0f,     // 0 bottom left
+            tempX2, 1.0f,     // 3 top right
+            tempX2, 0.0f     // 1 bottom right
+    };
 
 
     private final FloatBuffer pVertex;
@@ -79,7 +92,7 @@ public class GLDrawer2D {
         pTexCoord.put(TEXCOORD);
         pTexCoord.flip();
 
-        hProgram = loadShader(vss, fss);
+        hProgram = loadShader();
         GLES20.glUseProgram(hProgram);
         maPositionLoc = GLES20.glGetAttribLocation(hProgram, "aPosition");
         maTextureCoordLoc = GLES20.glGetAttribLocation(hProgram, "aTextureCoord");
@@ -93,15 +106,6 @@ public class GLDrawer2D {
         GLES20.glVertexAttribPointer(maTextureCoordLoc, 2, GLES20.GL_FLOAT, false, VERTEX_SZ, pTexCoord);
         GLES20.glEnableVertexAttribArray(maPositionLoc);
         GLES20.glEnableVertexAttribArray(maTextureCoordLoc);
-    }
-
-    /**
-     * terminatinng, this should be called in GL context
-     */
-    public void release() {
-        if (hProgram >= 0)
-            GLES20.glDeleteProgram(hProgram);
-        hProgram = -1;
     }
 
     /**
@@ -136,72 +140,36 @@ public class GLDrawer2D {
         }
     }
 
-    /**
-     * create external texture
-     *
-     * @return texture ID
-     */
-    public static int initTex() {
-        if (DEBUG) Log.v(TAG, "initTex:");
-        final int[] tex = new int[1];
-        GLES20.glGenTextures(1, tex, 0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex[0]);
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-                GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-                GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-                GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-                GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
-        return tex[0];
-    }
 
     /**
-     * delete specific texture
-     */
-    public static void deleteTex(final int hTex) {
-        if (DEBUG) Log.v(TAG, "deleteTex:");
-        final int[] tex = new int[]{hTex};
-        GLES20.glDeleteTextures(1, tex, 0);
-    }
-
-    /**
-     * load, compile and link shader
-     *
-     * @param vss source of vertex shader
-     * @param fss source of fragment shader
      * @return
      */
-    public static int loadShader(final String vss, final String fss) {
-        if (DEBUG) Log.v(TAG, "loadShader:");
-        int vs = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER);
-        GLES20.glShaderSource(vs, vss);
-        GLES20.glCompileShader(vs);
-        final int[] compiled = new int[1];
-        GLES20.glGetShaderiv(vs, GLES20.GL_COMPILE_STATUS, compiled, 0);
-        if (compiled[0] == 0) {
-            if (DEBUG) Log.e(TAG, "Failed to compile vertex shader:"
-                    + GLES20.glGetShaderInfoLog(vs));
-            GLES20.glDeleteShader(vs);
-            vs = 0;
+    public static int loadShader() {
+
+
+        //加载顶点着色器
+        int vertexShader = GLShaderUtil.loadShader(GLES20.GL_VERTEX_SHADER, vertexTex);
+        if (vertexShader == 0) {
+            return 0;
         }
 
-        int fs = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER);
-        GLES20.glShaderSource(fs, fss);
-        GLES20.glCompileShader(fs);
-        GLES20.glGetShaderiv(fs, GLES20.GL_COMPILE_STATUS, compiled, 0);
-        if (compiled[0] == 0) {
-            if (DEBUG) Log.w(TAG, "Failed to compile fragment shader:"
-                    + GLES20.glGetShaderInfoLog(fs));
-            GLES20.glDeleteShader(fs);
-            fs = 0;
+        //加载片元着色器
+        int pixelShader = GLShaderUtil.loadShader(GLES20.GL_FRAGMENT_SHADER, fragTex);
+        if (pixelShader == 0) {
+            return 0;
         }
 
-        final int program = GLES20.glCreateProgram();
-        GLES20.glAttachShader(program, vs);
-        GLES20.glAttachShader(program, fs);
-        GLES20.glLinkProgram(program);
+        //创建程序
+        int program = GLES20.glCreateProgram();
+        //若程序创建成功则向程序中加入顶点着色器与片元着色器
+        if (program != 0) {
+            //向程序中加入顶点着色器
+            GLES20.glAttachShader(program, vertexShader);
+            //向程序中加入片元着色器
+            GLES20.glAttachShader(program, pixelShader);
+            //链接程序
+            GLES20.glLinkProgram(program);
+        }
 
         return program;
     }
