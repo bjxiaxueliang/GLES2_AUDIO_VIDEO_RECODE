@@ -7,22 +7,13 @@ import android.opengl.EGL14;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.serenegiant.audiovideosample.gl_util.GLTextureUtil;
 import com.serenegiant.audiovideosample.gl_widget.GLTextureRect;
 import com.serenegiant.audiovideosample.media_encoder.MediaVideoEncoderRunable;
-
-import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import com.serenegiant.audiovideosample.util.CameraHelper;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -46,7 +37,15 @@ public final class MainGLSurfaceView extends GLSurfaceView {
 
 
     private boolean mHasSurface;
-    private CameraHandler mCameraHandler = null;
+
+
+    //
+    public int mCameraPreviewWidth = 1920;
+    public int mCameraPreviewHeight = 1080;
+
+    //-----------------------
+    // camera
+    private CameraHelper mCameraHelper = CameraHelper.getInstance();
 
 
     public MainGLSurfaceView(final Context context) {
@@ -73,23 +72,18 @@ public final class MainGLSurfaceView extends GLSurfaceView {
     public void onResume() {
 
         super.onResume();
-        // surface是否创建
-        if (mHasSurface) {
-            // 开始预览
-            if (mCameraHandler == null) {
-                startPreview();
-            }
+
+        if (mSurfaceTexture != null) {
+            // 开启摄像机预览
+            mCameraHelper.startPreview(Camera.CameraInfo.CAMERA_FACING_BACK, mSurfaceTexture);
         }
     }
 
     @Override
     public void onPause() {
-        //
-        if (mCameraHandler != null) {
-            // 停止预览
-            mCameraHandler.stopPreview(false);
-        }
         super.onPause();
+        // 停止预览
+        mCameraHelper.stopPreview();
     }
 
 
@@ -105,11 +99,12 @@ public final class MainGLSurfaceView extends GLSurfaceView {
     @Override
     public void surfaceDestroyed(final SurfaceHolder holder) {
 
-        if (mCameraHandler != null) {
+        if (mCameraHelper != null) {
             // 停止预览
-            mCameraHandler.stopPreview(true);
+            mCameraHelper.stopPreview();
+            mCameraHelper= null;
         }
-        mCameraHandler = null;
+        //
         mHasSurface = false;
         mRenderer.onSurfaceDestroyed();
         super.surfaceDestroyed(holder);
@@ -136,15 +131,9 @@ public final class MainGLSurfaceView extends GLSurfaceView {
         });
     }
 
-    //********************************************************************************
 
     private synchronized void startPreview() {
-        if (mCameraHandler == null) {
-            final CameraThread thread = new CameraThread(this);
-            thread.start();
-            mCameraHandler = thread.getHandler();
-        }
-        mCameraHandler.startPreview(1280, 720);
+        mCameraHelper.startPreview(Camera.CameraInfo.CAMERA_FACING_BACK, mSurfaceTexture);
     }
 
     /**
@@ -187,10 +176,22 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             //
             MainGLSurfaceView.this.mHasSurface = true;
 
+
+
+
+            // 开启摄像机预览
+            mCameraHelper.startPreview(Camera.CameraInfo.CAMERA_FACING_BACK, mSurfaceTexture);
+
+            //
+            mCameraPreviewWidth = mCameraHelper.getPreviewWidth();
+            mCameraPreviewHeight = mCameraHelper.getPreviewHeight();
+
+
             // create object for preview display
             mGLTextureRect = new GLTextureRect(1280,720);
             // 矩阵初始化
             mGLTextureRect.setMatrix(mMvpMatrix, 0);
+
         }
 
         @Override
@@ -272,209 +273,6 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Handler class for asynchronous camera operation
-     */
-    private static final class CameraHandler extends Handler {
-        private static final int MSG_PREVIEW_START = 1;
-        private static final int MSG_PREVIEW_STOP = 2;
-        private CameraThread mThread;
-
-        public CameraHandler(final CameraThread thread) {
-            mThread = thread;
-        }
-
-        public void startPreview(final int width, final int height) {
-            sendMessage(obtainMessage(MSG_PREVIEW_START, width, height));
-        }
-
-        /**
-         * request to stop camera preview
-         *
-         * @param needWait need to wait for stopping camera preview
-         */
-        public void stopPreview(final boolean needWait) {
-            synchronized (this) {
-                sendEmptyMessage(MSG_PREVIEW_STOP);
-                if (needWait && mThread.mIsRunning) {
-                    try {
-                        wait();
-                    } catch (final InterruptedException e) {
-                    }
-                }
-            }
-        }
-
-        /**
-         * message handler for camera thread
-         */
-        @Override
-        public void handleMessage(final Message msg) {
-            switch (msg.what) {
-                case MSG_PREVIEW_START:
-                    mThread.startPreview(msg.arg1, msg.arg2);
-                    break;
-                case MSG_PREVIEW_STOP:
-                    mThread.stopPreview();
-                    synchronized (this) {
-                        notifyAll();
-                    }
-                    Looper.myLooper().quit();
-                    mThread = null;
-                    break;
-                default:
-                    throw new RuntimeException("unknown message:what=" + msg.what);
-            }
-        }
-    }
-
-    /**
-     * Thread for asynchronous operation of camera preview
-     */
-    private static final class CameraThread extends Thread {
-        private final Object mReadyFence = new Object();
-        private final WeakReference<MainGLSurfaceView> mWeakParent;
-        private CameraHandler mHandler;
-        private volatile boolean mIsRunning = false;
-        private Camera mCamera;
-
-        public CameraThread(final MainGLSurfaceView parent) {
-            super("Camera thread");
-            mWeakParent = new WeakReference<MainGLSurfaceView>(parent);
-        }
-
-        public CameraHandler getHandler() {
-            synchronized (mReadyFence) {
-                try {
-                    mReadyFence.wait();
-                } catch (final InterruptedException e) {
-                }
-            }
-            return mHandler;
-        }
-
-        /**
-         * message loop
-         * prepare Looper and create Handler for this thread
-         */
-        @Override
-        public void run() {
-
-            Looper.prepare();
-            synchronized (mReadyFence) {
-                mHandler = new CameraHandler(this);
-                mIsRunning = true;
-                mReadyFence.notify();
-            }
-            Looper.loop();
-
-            synchronized (mReadyFence) {
-                mHandler = null;
-                mIsRunning = false;
-            }
-        }
-
-        /**
-         * start camera preview
-         *
-         * @param width
-         * @param height
-         */
-        private final void startPreview(final int width, final int height) {
-
-            final MainGLSurfaceView parent = mWeakParent.get();
-            if ((parent != null) && (mCamera == null)) {
-                // This is a sample project so just use 0 as camera ID.
-                // it is better to selecting camera is available
-                try {
-                    // 打开后置摄像头
-                    mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
-                    //
-                    final Camera.Parameters params = mCamera.getParameters();
-                    //
-                    final List<String> focusModes = params.getSupportedFocusModes();
-                    if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-                        // 聚焦
-                        params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-                    } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
-                        // 自动聚焦
-                        params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-                    }
-                    // let's try fastest frame rate. You will get near 60fps, but your device become hot.
-//                    final List<int[]> supportedFpsRange = params.getSupportedPreviewFpsRange();
-//                    //
-//                    final int[] max_fps = supportedFpsRange.get(supportedFpsRange.size() - 1);
-//                    params.setPreviewFpsRange(max_fps[0], max_fps[1]);
-                    params.setRecordingHint(true);
-                    // 找最接近的数值
-                    final Camera.Size closestSize = getClosestSupportedSize(
-                            params.getSupportedPreviewSizes(), width, height);
-                    params.setPreviewSize(closestSize.width, closestSize.height);
-                    // request closest picture size for an aspect ratio issue on Nexus7
-                    final Camera.Size pictureSize = getClosestSupportedSize(
-                            params.getSupportedPictureSizes(), width, height);
-                    params.setPictureSize(pictureSize.width, pictureSize.height);
-                    //
-                    mCamera.setParameters(params);
-                    // get the actual preview size
-                    final Camera.Size previewSize = mCamera.getParameters().getPreviewSize();
-                    // adjust view size with keeping the aspect ration of camera preview.
-                    // here is not a UI thread and we should request parent view to execute.
-
-
-                    final SurfaceTexture st = parent.getSurfaceTexture();
-                    st.setDefaultBufferSize(previewSize.width, previewSize.height);
-                    mCamera.setPreviewTexture(st);
-                } catch (final IOException e) {
-                    Log.e(TAG, "startPreview:", e);
-                    if (mCamera != null) {
-                        mCamera.release();
-                        mCamera = null;
-                    }
-                } catch (final RuntimeException e) {
-                    Log.e(TAG, "startPreview:", e);
-                    if (mCamera != null) {
-                        mCamera.release();
-                        mCamera = null;
-                    }
-                }
-                if (mCamera != null) {
-                    mCamera.startPreview();
-                }
-            }
-        }
-
-        private static Camera.Size getClosestSupportedSize(List<Camera.Size> supportedSizes, final int requestedWidth, final int requestedHeight) {
-            return (Camera.Size) Collections.min(supportedSizes, new Comparator<Camera.Size>() {
-
-                private int diff(final Camera.Size size) {
-                    return Math.abs(requestedWidth - size.width) + Math.abs(requestedHeight - size.height);
-                }
-
-                @Override
-                public int compare(final Camera.Size lhs, final Camera.Size rhs) {
-                    return diff(lhs) - diff(rhs);
-                }
-            });
-
-        }
-
-        /**
-         * stop camera preview
-         */
-        private void stopPreview() {
-
-            if (mCamera != null) {
-                mCamera.stopPreview();
-                mCamera.release();
-                mCamera = null;
-            }
-            final MainGLSurfaceView parent = mWeakParent.get();
-            if (parent == null) return;
-            parent.mCameraHandler = null;
         }
     }
 }
