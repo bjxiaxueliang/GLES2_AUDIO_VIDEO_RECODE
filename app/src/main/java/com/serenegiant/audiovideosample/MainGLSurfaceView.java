@@ -15,7 +15,7 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.serenegiant.audiovideosample.gl_util.GLTextureUtil;
-import com.serenegiant.audiovideosample.gl_widget.GLDrawer2D;
+import com.serenegiant.audiovideosample.gl_widget.GLTextureRect;
 import com.serenegiant.audiovideosample.media_encoder.MediaVideoEncoderRunable;
 
 import java.io.IOException;
@@ -42,7 +42,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
     // 用于与Camera绑定的 SurfaceTexture
     private SurfaceTexture mSurfaceTexture = null;
     //
-    private GLDrawer2D mDrawer;
+    private GLTextureRect mGLTextureRect;
 
 
     private boolean mHasSurface;
@@ -188,9 +188,9 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             MainGLSurfaceView.this.mHasSurface = true;
 
             // create object for preview display
-            mDrawer = new GLDrawer2D();
+            mGLTextureRect = new GLTextureRect(1280,720);
             // 矩阵初始化
-            mDrawer.setMatrix(mMvpMatrix, 0);
+            mGLTextureRect.setMatrix(mMvpMatrix, 0);
         }
 
         @Override
@@ -226,8 +226,8 @@ public final class MainGLSurfaceView extends GLSurfaceView {
 
             Matrix.setIdentityM(mMvpMatrix, 0);
 
-            if (mDrawer != null) {
-                mDrawer.setMatrix(mMvpMatrix, 0);
+            if (mGLTextureRect != null) {
+                mGLTextureRect.setMatrix(mMvpMatrix, 0);
             }
 
         }
@@ -259,7 +259,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
 
 
             // 绘制纹理矩形
-            mDrawer.draw(mTextureId, mStMatrix);
+            mGLTextureRect.draw(mTextureId, mStMatrix);
 
             //---------------视频写入----------------
             // 减少一半的视频数据写入

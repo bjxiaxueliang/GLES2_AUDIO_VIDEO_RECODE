@@ -9,7 +9,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 
 import com.serenegiant.audiovideosample.egl.SohuEGLManager;
-import com.serenegiant.audiovideosample.gl_widget.GLDrawer2D;
+import com.serenegiant.audiovideosample.gl_widget.GLTextureRect;
 
 
 /**
@@ -149,7 +149,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
     }
 
     private SohuEGLManager mSohuEgl;
-    private GLDrawer2D mDrawer;
+    private GLTextureRect mRenderGLTextureRect;
 
     @Override
     public final void run() {
@@ -183,8 +183,8 @@ public final class RecoderGLRenderRunnable implements Runnable {
                 if ((mSohuEgl != null) && mTexId >= 0) {
                     GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
                     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-                    mDrawer.setMatrix(mMatrix, 16);
-                    mDrawer.draw(mTexId, mMatrix);
+                    mRenderGLTextureRect.setMatrix(mMatrix, 16);
+                    mRenderGLTextureRect.draw(mTexId, mMatrix);
                     mSohuEgl.swapMyEGLBuffers();
                 }
             } else {
@@ -213,7 +213,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
         //
         mSohuEgl = new SohuEGLManager(mEGLContext, mSurface);
         //
-        mDrawer = new GLDrawer2D();
+        mRenderGLTextureRect = new GLTextureRect(1280,720);
         mSurface = null;
         mSync.notifyAll();
     }
