@@ -238,7 +238,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                 synchronized (mRenderer) {
                     // 这里是获取了一个GLThread的EGL14.eglGetCurrentContext()
                     if (mediaVideoEncoderRunable != null) {
-                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), mTextureId);
+                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), MainGLSurfaceView.this, mTextureId);
                     }
                     mRenderer.mMediaVideoEncoderRunable = mediaVideoEncoderRunable;
                 }

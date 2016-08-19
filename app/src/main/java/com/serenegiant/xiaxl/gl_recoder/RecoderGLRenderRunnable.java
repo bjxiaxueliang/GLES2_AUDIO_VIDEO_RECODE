@@ -8,6 +8,7 @@ import android.text.TextUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
+import com.serenegiant.xiaxl.MainGLSurfaceView;
 import com.serenegiant.xiaxl.egl.SohuEGLManager;
 import com.serenegiant.xiaxl.gl_widget.GLTextureRect;
 
@@ -21,6 +22,8 @@ public final class RecoderGLRenderRunnable implements Runnable {
 
     private final Object mSync = new Object();
     private EGLContext mEGLContext;
+
+    private MainGLSurfaceView mGLSurfaceView;
 
     private Object mSurface;
     private int mTexId = -1;
@@ -60,7 +63,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
      * @param texId
      * @param surface
      */
-    public final void setEglContext(final EGLContext eglContext, final int texId, final Object surface) {
+    public final void setEglContext(final EGLContext eglContext, MainGLSurfaceView glSurfaceView, final int texId, final Object surface) {
         //
         if (!(surface instanceof Surface) && !(surface instanceof SurfaceTexture) && !(surface instanceof SurfaceHolder)) {
             throw new RuntimeException("unsupported window type:" + surface);
@@ -73,6 +76,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
             }
             //
             mEGLContext = eglContext;
+            mGLSurfaceView = glSurfaceView;
             mTexId = texId;
             mSurface = surface;
             //
@@ -201,7 +205,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
         }
         synchronized (mSync) {
             mRequestRelease = true;
-            internalRelease();
+            releaseEGL();
             mSync.notifyAll();
         }
 
@@ -209,11 +213,11 @@ public final class RecoderGLRenderRunnable implements Runnable {
 
     private final void internalPrepare() {
         //
-        internalRelease();
+        releaseEGL();
         //
         mSohuEgl = new SohuEGLManager(mEGLContext, mSurface);
         //
-        mRenderGLTextureRect = new GLTextureRect(1280,720);
+        mRenderGLTextureRect = new GLTextureRect(mGLSurfaceView.mCameraPreviewWidth, mGLSurfaceView.mCameraPreviewHeight);
         mSurface = null;
         mSync.notifyAll();
     }
@@ -221,7 +225,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
     /**
      *
      */
-    private final void internalRelease() {
+    private final void releaseEGL() {
         if (mSohuEgl != null) {
             mSohuEgl.release();
             mSohuEgl = null;

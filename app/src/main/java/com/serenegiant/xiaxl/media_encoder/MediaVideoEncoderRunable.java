@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.Surface;
 
 import com.serenegiant.xiaxl.LogUtils;
+import com.serenegiant.xiaxl.MainGLSurfaceView;
 import com.serenegiant.xiaxl.gl_recoder.RecoderGLRenderRunnable;
 import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
 
@@ -118,8 +119,8 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
      * @param eglContext 这个eglContext来自GLThread的eglContext
      * @param texId      纹理Id
      */
-    public void setEglContext(final EGLContext eglContext, final int texId) {
-        mRenderRunnable.setEglContext(eglContext, texId, mSurface);
+    public void setEglContext(final EGLContext eglContext, MainGLSurfaceView glSurfaceView, final int texId) {
+        mRenderRunnable.setEglContext(eglContext, glSurfaceView, texId, mSurface);
     }
 
     @Override

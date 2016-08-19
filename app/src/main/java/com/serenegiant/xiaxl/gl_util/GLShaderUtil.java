@@ -1,4 +1,4 @@
-package com.serenegiant.xiaxl.gl_widget;
+package com.serenegiant.xiaxl.gl_util;
 
 import android.opengl.GLES20;
 import android.util.Log;
