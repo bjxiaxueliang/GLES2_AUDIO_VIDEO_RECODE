@@ -1,9 +1,9 @@
-package com.serenegiant.audiovideosample.util;
+package com.serenegiant.xiaxl.util;
 
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 
-import com.serenegiant.audiovideosample.LogUtils;
+import com.serenegiant.xiaxl.LogUtils;
 
 import java.io.IOException;
 import java.util.List;

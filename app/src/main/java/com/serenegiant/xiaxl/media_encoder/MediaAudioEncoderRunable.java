@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample.media_encoder;
+package com.serenegiant.xiaxl.media_encoder;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -7,8 +7,8 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
 
-import com.serenegiant.audiovideosample.LogUtils;
-import com.serenegiant.audiovideosample.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.LogUtils;
+import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -82,7 +82,7 @@ public class MediaAudioEncoderRunable extends BaseMediaEncoderRunable {
     }
 
     @Override
-    protected void release() {
+    public void release() {
         mAudioThread = null;
         super.release();
     }

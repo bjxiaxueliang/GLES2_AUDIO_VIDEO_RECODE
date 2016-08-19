@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample.gl_widget;
+package com.serenegiant.xiaxl.gl_widget;
 
 
 import android.opengl.GLES11Ext;

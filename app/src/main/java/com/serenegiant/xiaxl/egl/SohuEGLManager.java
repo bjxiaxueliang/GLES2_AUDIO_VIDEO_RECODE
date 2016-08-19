@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample.egl;
+package com.serenegiant.xiaxl.egl;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
@@ -11,7 +11,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import com.serenegiant.audiovideosample.LogUtils;
+import com.serenegiant.xiaxl.LogUtils;
 
 /**
  * EGL 相关配置

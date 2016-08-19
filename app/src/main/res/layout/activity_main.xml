@@ -5,16 +5,16 @@
 
 
     <!--这个layout的作用是把glsurface限制为正方形-->
-    <com.serenegiant.audiovideosample.widget.SquareRelativeLayout
+    <com.serenegiant.xiaxl.widget.SquareRelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <com.serenegiant.audiovideosample.MainGLSurfaceView
+        <com.serenegiant.xiaxl.MainGLSurfaceView
             android:id="@+id/cameraView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_centerInParent="true" />
-    </com.serenegiant.audiovideosample.widget.SquareRelativeLayout>
+    </com.serenegiant.xiaxl.widget.SquareRelativeLayout>
 
 
     <Button

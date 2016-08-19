@@ -1,72 +1,68 @@
-package com.serenegiant.audiovideosample.media_encoder;
+package com.serenegiant.xiaxl.media_encoder;
 
 
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 
-import com.serenegiant.audiovideosample.LogUtils;
-import com.serenegiant.audiovideosample.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.LogUtils;
+import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- *
+ * 视频与音频录制的基类
  */
 public abstract class BaseMediaEncoderRunable implements Runnable {
 
     private static final String TAG = BaseMediaEncoderRunable.class.getSimpleName();
 
-    protected static final int TIMEOUT_USEC = 10000;    // 10[msec]
-
-    public interface MediaEncoderListener {
-        public void onPrepared(BaseMediaEncoderRunable encoder);
-
-        public void onStopped(BaseMediaEncoderRunable encoder);
-    }
-
-    protected final Object mSync = new Object();
-    /**
-     * Flag that indicate this encoder is capturing now.
-     */
-    protected volatile boolean mIsCapturing;
-    /**
-     * Flag that indicate the frame data will be available soon.
-     */
-    private int mRequestDrain;
-    /**
-     * Flag to request stop capturing
-     */
-    protected volatile boolean mRequestStop;
-    /**
-     * Flag that indicate encoder received EOS(End Of Stream)
-     */
-    protected boolean mIsEndOfStream;
-    /**
-     * Flag the indicate the muxer is running
-     */
-    protected boolean mMuxerStarted;
-    /**
-     * Track Number
-     */
-    protected int mTrackIndex;
-    /**
-     * MediaCodec instance for encoding
-     */
-    protected MediaCodec mMediaCodec;                // API >= 16(Android4.1.2)
-    /**
-     * Weak refarence of MediaMuxerWarapper instance
-     */
-    protected SohuMediaMuxerManager mSohuMediaMuxerManager;
-    /**
-     * BufferInfo instance for dequeuing
-     */
-    private MediaCodec.BufferInfo mBufferInfo;
-
+    // 10[msec]
+    protected static final int TIMEOUT_USEC = 10000;
 
     /**
      *
      */
+    public interface MediaEncoderListener {
+        void onPrepared(BaseMediaEncoderRunable encoder);
+
+        void onStopped(BaseMediaEncoderRunable encoder);
+    }
+
+    // 同步锁
+    protected final Object mSync = new Object();
+    // Flag that indicate this encoder is capturing now.
+    // 是否正在进行录制的状态记录
+    protected volatile boolean mIsCapturing;
+    // Flag that indicate the frame data will be available soon.
+    // 可用数据帧数量
+    private int mRequestDrainEncoderCount;
+    // Flag to request stop capturing
+    // 结束录制的标识
+    protected volatile boolean mRequestStop;
+    // Flag that indicate encoder received EOS(End Of Stream)
+    // 结束录制标识
+    protected boolean mIsEndOfStream;
+    //Flag the indicate the muxer is running
+    // muxer结束标识
+    protected boolean mMuxerStarted;
+    //Track Number
+    protected int mTrackIndex;
+
+    /**
+     * -----------------------------
+     */
+    // MediaCodec instance for encoding
+    protected MediaCodec mMediaCodec;
+    // BufferInfo instance for dequeuing
+    private MediaCodec.BufferInfo mBufferInfo;
+
+    /**
+     * ----------------------------
+     */
+    // MediaMuxerWarapper instance
+    protected SohuMediaMuxerManager mSohuMediaMuxerManager;
+    //
     protected final MediaEncoderListener mMediaEncoderListener;
 
 
@@ -77,6 +73,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
      * @param mediaEncoderListener
      */
     public BaseMediaEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
+        LogUtils.d(TAG,"---BaseMediaEncoderRunable---");
         if (mediaEncoderListener == null) {
             throw new NullPointerException("MediaEncoderListener is null");
         }
@@ -88,10 +85,12 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
         this.mMediaEncoderListener = mediaEncoderListener;
         //
         //
-        this.mSohuMediaMuxerManager.addEncoder(this);
+        this.mSohuMediaMuxerManager.addEncoder(BaseMediaEncoderRunable.this);
 
         //
+        LogUtils.d(TAG,"---BaseMediaEncoderRunable synchronized (mSync) before begin---");
         synchronized (mSync) {
+            LogUtils.d(TAG,"---BaseMediaEncoderRunable synchronized (mSync) begin---");
             // create BufferInfo here for effectiveness(to reduce GC)
             mBufferInfo = new MediaCodec.BufferInfo();
             // wait for starting thread
@@ -99,8 +98,10 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
             try {
                 mSync.wait();
             } catch (final InterruptedException e) {
+                e.printStackTrace();
             }
         }
+        LogUtils.d(TAG,"---BaseMediaEncoderRunable synchronized (mSync) end---");
     }
 
 
@@ -111,13 +112,21 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
      */
     public boolean frameAvailableSoon() {
         LogUtils.d(TAG, "---frameAvailableSoon---");
+        LogUtils.d(TAG, "---mSync before begin---");
         synchronized (mSync) {
+            LogUtils.d(TAG, "---mSync begin---");
             if (!mIsCapturing || mRequestStop) {
+                LogUtils.d(TAG, "mIsCapturing: "+mIsCapturing);
+                LogUtils.d(TAG, "mRequestStop: "+mRequestStop);
+                LogUtils.d(TAG, "return false");
                 return false;
             }
-            mRequestDrain++;
+            mRequestDrainEncoderCount++;
+            LogUtils.d(TAG, "mRequestDrainEncoderCount: "+mRequestDrainEncoderCount);
             mSync.notifyAll();
         }
+        LogUtils.d(TAG, "---mSync end---");
+        LogUtils.d(TAG, "return true");
         return true;
     }
 
@@ -126,23 +135,35 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
      */
     @Override
     public void run() {
-        //
+        LogUtils.d(TAG,"---run---");
+        LogUtils.d(TAG,"---run synchronized (mSync) before begin---");
+        // 线程开启
         synchronized (mSync) {
+            LogUtils.d(TAG,"---run synchronized (mSync) begin---");
+            //
             mRequestStop = false;
-            mRequestDrain = 0;
+            mRequestDrainEncoderCount = 0;
+            //
             mSync.notify();
         }
+        LogUtils.d(TAG,"---run synchronized (mSync) end---");
+        // 线程开启
         final boolean isRunning = true;
         boolean localRequestStop;
-        boolean localRequestDrain;
+        boolean localRequestDrainEncoderFlag;
         while (isRunning) {
+            //
+            LogUtils.d(TAG,"---run2 synchronized (mSync) before begin---");
             synchronized (mSync) {
+                LogUtils.d(TAG,"---run2 synchronized (mSync) begin---");
                 localRequestStop = mRequestStop;
-                localRequestDrain = (mRequestDrain > 0);
-                if (localRequestDrain) {
-                    mRequestDrain--;
+                localRequestDrainEncoderFlag = (mRequestDrainEncoderCount > 0);
+                if (localRequestDrainEncoderFlag) {
+                    mRequestDrainEncoderCount--;
                 }
             }
+            LogUtils.d(TAG,"---run2 synchronized (mSync) end---");
+            // 停止编码时，调用
             if (localRequestStop) {
                 drainEncoder();
                 // request stop recording
@@ -153,11 +174,14 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
                 release();
                 break;
             }
-            if (localRequestDrain) {
+            // 需要编码
+            if (localRequestDrainEncoderFlag) {
                 drainEncoder();
             } else {
                 // ------线程进入等待状态---------
+                LogUtils.d(TAG,"---run3 synchronized (mSync) before begin---");
                 synchronized (mSync) {
+                    LogUtils.d(TAG,"---run3 synchronized (mSync) begin---");
                     try {
                         mSync.wait();
                     } catch (final InterruptedException e) {
@@ -165,6 +189,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
                         break;
                     }
                 }
+                LogUtils.d(TAG,"---run3 synchronized (mSync) end---");
             }
         } // end of while
 
@@ -186,12 +211,17 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
      * 目前主线程调用
      */
     public void startRecording() {
-
+        LogUtils.d(TAG,"---startRecording synchronized (mSync) before begin---");
         synchronized (mSync) {
+            LogUtils.d(TAG,"---startRecording synchronized (mSync) begin---");
+            // 正在录制标识
             mIsCapturing = true;
+            // 停止标识 置false
             mRequestStop = false;
+            //
             mSync.notifyAll();
         }
+        LogUtils.d(TAG,"---startRecording synchronized (mSync) end---");
     }
 
 
@@ -199,27 +229,32 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
      * 停止录制(目前在主线程调用)
      */
     public void stopRecording() {
+        LogUtils.d(TAG,"---stopRecording synchronized (mSync) before begin---");
         synchronized (mSync) {
+            LogUtils.d(TAG,"---stopRecording synchronized (mSync) begin---");
             if (!mIsCapturing || mRequestStop) {
                 return;
             }
             mRequestStop = true;
             mSync.notifyAll();
         }
+        LogUtils.d(TAG,"---stopRecording synchronized (mSync) end---");
     }
 
 
     /**
      * Release all releated objects
      */
-    protected void release() {
-
+    public void release() {
+        // 回调停止
         try {
-            mMediaEncoderListener.onStopped(this);
+            mMediaEncoderListener.onStopped(BaseMediaEncoderRunable.this);
         } catch (final Exception e) {
             e.printStackTrace();
         }
+        // 设置标识 停止
         mIsCapturing = false;
+        // ------释放mediacodec--------
         if (mMediaCodec != null) {
             try {
                 mMediaCodec.stop();
@@ -229,21 +264,24 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
                 e.printStackTrace();
             }
         }
+        // ----------释放muxer-----------
         if (mMuxerStarted) {
-            final SohuMediaMuxerManager muxer = mSohuMediaMuxerManager;
-            if (muxer != null) {
+            if (mSohuMediaMuxerManager != null) {
                 try {
-                    muxer.stop();
+                    mSohuMediaMuxerManager.stop();
                 } catch (final Exception e) {
                     e.printStackTrace();
                 }
             }
         }
+        // mBufferInfo置空
         mBufferInfo = null;
     }
 
-    protected void signalEndOfInputStream() {
-
+    /**
+     * 停止录制
+     */
+    public void signalEndOfInputStream() {
         encode(null, 0, getPTSUs());
     }
 

@@ -1,14 +1,14 @@
-package com.serenegiant.audiovideosample;
+package com.serenegiant.xiaxl;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 
-import com.serenegiant.audiovideosample.media_encoder.MediaAudioEncoderRunable;
-import com.serenegiant.audiovideosample.media_encoder.BaseMediaEncoderRunable;
-import com.serenegiant.audiovideosample.media_encoder.MediaVideoEncoderRunable;
-import com.serenegiant.audiovideosample.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.media_encoder.MediaAudioEncoderRunable;
+import com.serenegiant.xiaxl.media_encoder.BaseMediaEncoderRunable;
+import com.serenegiant.xiaxl.media_encoder.MediaVideoEncoderRunable;
+import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
 
 import java.io.IOException;
 

@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample.media_encoder;
+package com.serenegiant.xiaxl.media_encoder;
 
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
@@ -7,9 +7,9 @@ import android.opengl.EGLContext;
 import android.util.Log;
 import android.view.Surface;
 
-import com.serenegiant.audiovideosample.LogUtils;
-import com.serenegiant.audiovideosample.gl_recoder.RecoderGLRenderRunnable;
-import com.serenegiant.audiovideosample.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.LogUtils;
+import com.serenegiant.xiaxl.gl_recoder.RecoderGLRenderRunnable;
+import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
 
 import java.io.IOException;
 
@@ -123,7 +123,7 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
     }
 
     @Override
-    protected void release() {
+    public void release() {
         LogUtils.i(TAG, "release:");
         if (mSurface != null) {
             mSurface.release();
@@ -142,13 +142,13 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
      * @return
      */
     private int calcBitRate() {
-        final int bitrate = (int) (BPP * FRAME_RATE * mWidth * mHeight);
-        //final int bitrate = 800000;
+        //final int bitrate = (int) (BPP * FRAME_RATE * mWidth * mHeight);
+        final int bitrate = 800000;
         return bitrate;
     }
 
     @Override
-    protected void signalEndOfInputStream() {
+    public void signalEndOfInputStream() {
         LogUtils.d(TAG, "sending EOS to encoder");
         // 停止录制
         mMediaCodec.signalEndOfInputStream();

@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample.widget;
+package com.serenegiant.xiaxl.widget;
 
 import android.content.Context;
 import android.util.AttributeSet;

@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample;
+package com.serenegiant.xiaxl;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
@@ -10,10 +10,10 @@ import android.opengl.Matrix;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 
-import com.serenegiant.audiovideosample.gl_util.GLTextureUtil;
-import com.serenegiant.audiovideosample.gl_widget.GLTextureRect;
-import com.serenegiant.audiovideosample.media_encoder.MediaVideoEncoderRunable;
-import com.serenegiant.audiovideosample.util.CameraHelper;
+import com.serenegiant.xiaxl.gl_util.GLTextureUtil;
+import com.serenegiant.xiaxl.gl_widget.GLTextureRect;
+import com.serenegiant.xiaxl.media_encoder.MediaVideoEncoderRunable;
+import com.serenegiant.xiaxl.util.CameraHelper;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -25,8 +25,9 @@ import javax.microedition.khronos.opengles.GL10;
 public final class MainGLSurfaceView extends GLSurfaceView {
     private static final String TAG = MainGLSurfaceView.class.getSimpleName();
 
-    // render
-    private final GLSceneRenderer mRenderer;
+    //
+    public int mCameraPreviewWidth = 1920;
+    public int mCameraPreviewHeight = 1080;
 
     // 渐变矩形的纹理id
     private int mTextureId = 100;
@@ -35,14 +36,8 @@ public final class MainGLSurfaceView extends GLSurfaceView {
     //
     private GLTextureRect mGLTextureRect;
 
-
-    private boolean mHasSurface;
-
-
-    //
-    public int mCameraPreviewWidth = 1920;
-    public int mCameraPreviewHeight = 1080;
-
+    // 渲染器
+    private final GLSceneRenderer mRenderer;
     //-----------------------
     // camera
     private CameraHelper mCameraHelper = CameraHelper.getInstance();
@@ -87,54 +82,20 @@ public final class MainGLSurfaceView extends GLSurfaceView {
     }
 
 
-    /**
-     * surfaceTexture
-     *
-     * @return
-     */
-    public SurfaceTexture getSurfaceTexture() {
-        return mSurfaceTexture;
-    }
-
     @Override
     public void surfaceDestroyed(final SurfaceHolder holder) {
-
+        //
         if (mCameraHelper != null) {
             // 停止预览
             mCameraHelper.stopPreview();
-            mCameraHelper= null;
+            mCameraHelper = null;
         }
         //
-        mHasSurface = false;
         mRenderer.onSurfaceDestroyed();
+        //
         super.surfaceDestroyed(holder);
     }
 
-    /**
-     * 开始录制视频时，由主线程||异步线程回调回来的
-     *
-     * @param mediaVideoEncoderRunable
-     */
-    public void setVideoEncoder(final MediaVideoEncoderRunable mediaVideoEncoderRunable) {
-
-        queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (mRenderer) {
-                    // 这里是获取了一个GLThread的EGL14.eglGetCurrentContext()
-                    if (mediaVideoEncoderRunable != null) {
-                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), mTextureId);
-                    }
-                    mRenderer.mMediaVideoEncoderRunable = mediaVideoEncoderRunable;
-                }
-            }
-        });
-    }
-
-
-    private synchronized void startPreview() {
-        mCameraHelper.startPreview(Camera.CameraInfo.CAMERA_FACING_BACK, mSurfaceTexture);
-    }
 
     /**
      * GLSurfaceView Renderer
@@ -143,13 +104,13 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             implements GLSurfaceView.Renderer {
 
 
-
-
         private final float[] mStMatrix = new float[16];
         private final float[] mMvpMatrix = new float[16];
 
 
+        //
         private MediaVideoEncoderRunable mMediaVideoEncoderRunable;
+
 
         public GLSceneRenderer() {
 
@@ -173,10 +134,6 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                     MainGLSurfaceView.this.requestRender();
                 }
             });
-            //
-            MainGLSurfaceView.this.mHasSurface = true;
-
-
 
 
             // 开启摄像机预览
@@ -188,7 +145,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
 
 
             // create object for preview display
-            mGLTextureRect = new GLTextureRect(1280,720);
+            mGLTextureRect = new GLTextureRect(mCameraPreviewWidth, mCameraPreviewHeight);
             // 矩阵初始化
             mGLTextureRect.setMatrix(mMvpMatrix, 0);
 
@@ -196,11 +153,18 @@ public final class MainGLSurfaceView extends GLSurfaceView {
 
         @Override
         public void onSurfaceChanged(final GL10 unused, final int width, final int height) {
-
-
-            updateViewport();
-
-            MainGLSurfaceView.this.startPreview();
+            // 设置视窗大小及位置
+            GLES20.glViewport(0, 0, width, height);
+            //
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+            //
+            Matrix.setIdentityM(mMvpMatrix, 0);
+            //
+            if (mGLTextureRect != null) {
+                mGLTextureRect.setMatrix(mMvpMatrix, 0);
+            }
+            // 开启预览
+            mCameraHelper.startPreview(Camera.CameraInfo.CAMERA_FACING_BACK, mSurfaceTexture);
 
         }
 
@@ -216,22 +180,6 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             GLTextureUtil.deleteTex(mTextureId);
         }
 
-        private final void updateViewport() {
-
-
-            final int view_width = MainGLSurfaceView.this.getWidth();
-            final int view_height = MainGLSurfaceView.this.getHeight();
-            GLES20.glViewport(0, 0, view_width, view_height);
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-
-
-            Matrix.setIdentityM(mMvpMatrix, 0);
-
-            if (mGLTextureRect != null) {
-                mGLTextureRect.setMatrix(mMvpMatrix, 0);
-            }
-
-        }
 
         /**
          * 有摄像头数据后requesrUpdateTex为true
@@ -275,4 +223,27 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             }
         }
     }
+
+
+    /**
+     * 开始录制视频时，由主线程||异步线程回调回来的
+     *
+     * @param mediaVideoEncoderRunable
+     */
+    public void setVideoEncoder(final MediaVideoEncoderRunable mediaVideoEncoderRunable) {
+
+        queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (mRenderer) {
+                    // 这里是获取了一个GLThread的EGL14.eglGetCurrentContext()
+                    if (mediaVideoEncoderRunable != null) {
+                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), mTextureId);
+                    }
+                    mRenderer.mMediaVideoEncoderRunable = mediaVideoEncoderRunable;
+                }
+            }
+        });
+    }
+
 }

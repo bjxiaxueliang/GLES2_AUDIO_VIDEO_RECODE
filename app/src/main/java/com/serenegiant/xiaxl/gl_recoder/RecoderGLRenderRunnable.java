@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample.gl_recoder;
+package com.serenegiant.xiaxl.gl_recoder;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.EGLContext;
@@ -8,8 +8,8 @@ import android.text.TextUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
-import com.serenegiant.audiovideosample.egl.SohuEGLManager;
-import com.serenegiant.audiovideosample.gl_widget.GLTextureRect;
+import com.serenegiant.xiaxl.egl.SohuEGLManager;
+import com.serenegiant.xiaxl.gl_widget.GLTextureRect;
 
 
 /**

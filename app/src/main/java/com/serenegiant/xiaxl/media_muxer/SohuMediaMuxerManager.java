@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample.media_muxer;
+package com.serenegiant.xiaxl.media_muxer;
 
 
 import android.media.MediaCodec;
@@ -7,9 +7,9 @@ import android.media.MediaMuxer;
 import android.os.Environment;
 import android.text.TextUtils;
 
-import com.serenegiant.audiovideosample.media_encoder.BaseMediaEncoderRunable;
-import com.serenegiant.audiovideosample.media_encoder.MediaAudioEncoderRunable;
-import com.serenegiant.audiovideosample.media_encoder.MediaVideoEncoderRunable;
+import com.serenegiant.xiaxl.media_encoder.BaseMediaEncoderRunable;
+import com.serenegiant.xiaxl.media_encoder.MediaAudioEncoderRunable;
+import com.serenegiant.xiaxl.media_encoder.MediaVideoEncoderRunable;
 
 import java.io.File;
 import java.io.IOException;

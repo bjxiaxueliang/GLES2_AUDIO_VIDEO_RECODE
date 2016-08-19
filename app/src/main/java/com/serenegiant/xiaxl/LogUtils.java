@@ -1,4 +1,4 @@
-package com.serenegiant.audiovideosample;
+package com.serenegiant.xiaxl;
 
 import android.util.Log;
 
