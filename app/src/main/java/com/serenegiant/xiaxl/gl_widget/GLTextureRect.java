@@ -3,7 +3,6 @@ package com.serenegiant.xiaxl.gl_widget;
 
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
-import android.opengl.Matrix;
 
 import com.serenegiant.xiaxl.gl_util.GLShaderUtil;
 
@@ -38,7 +37,7 @@ public class GLTextureRect {
             + "}";
 
     // 顶点的数量
-    private static final int VERTEX_NUM = 4;
+    private static final int VERTEX_NUM = 6;
 
 
     //顶点坐标数据缓冲
@@ -75,24 +74,23 @@ public class GLTextureRect {
     public void initVertexData(float cameraPreviewWidth, float cameraPreviewHeight) {
 
         /**
-         * 定点坐标
+         * 顶点坐标
          */
-        float[] VERTICES = {
-                // top right
-                2.0f, 2.0f, 0,
-                // top left
-                -2.0f, 2.0f, 0,
-                // bottom right
-                2.0f, -2.0f, 0,
-                // bottom left
-                -2.0f, -2.0f, 0
-        };
+        float vertices[] =
+                {
+                        -2.0f, 2.0f, 0,
+                        -2.0f, -2.0f, 0,
+                        2.0f, 2.0f, 0,
 
+                        -2.0f, -2.0f, 0,
+                        2.0f, -2.0f, 0,
+                        2.0f, 2.0f, 0
+                };
         //创建顶点坐标数据缓冲
-        ByteBuffer vbb = ByteBuffer.allocateDirect(VERTICES.length * 4);
+        ByteBuffer vbb = ByteBuffer.allocateDirect(vertices.length * 4);
         vbb.order(ByteOrder.nativeOrder());
         mVertexBuffer = vbb.asFloatBuffer();
-        mVertexBuffer.put(VERTICES);
+        mVertexBuffer.put(vertices);
         mVertexBuffer.position(0);
 
 
@@ -108,24 +106,21 @@ public class GLTextureRect {
             tempX1 = (cameraPreviewWidth - cameraPreviewHeight) / (cameraPreviewWidth * 2f);
             tempX2 = 1 - tempX1;
         }
-        //
-        final float[] TEXCOORD = {
-                // top right
-                tempX2, 1.0f,
-                // top left
-                tempX1, 1.0f,
-                // bottom right
-                tempX2, 0.0f,
-                // bottom left
-                tempX1, 0.0f
-
-        };
+        float texCoor[] = new float[]//纹理坐标
+                {
+                        tempX1, 0,
+                        tempX1, 1,
+                        tempX2, 0,
+                        tempX1, 1,
+                        tempX2, 1,
+                        tempX2, 0
+                };
 
         //创建顶点纹理坐标数据缓冲
-        ByteBuffer cbb = ByteBuffer.allocateDirect(TEXCOORD.length * 4);
+        ByteBuffer cbb = ByteBuffer.allocateDirect(texCoor.length * 4);
         cbb.order(ByteOrder.nativeOrder());
         mTexCoorBuffer = cbb.asFloatBuffer();
-        mTexCoorBuffer.put(TEXCOORD);
+        mTexCoorBuffer.put(texCoor);
         mTexCoorBuffer.position(0);
 
 
@@ -195,6 +190,6 @@ public class GLTextureRect {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texId);
         // 绘制三角形
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, VERTEX_NUM);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, VERTEX_NUM);
     }
 }
