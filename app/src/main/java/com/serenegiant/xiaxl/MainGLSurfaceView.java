@@ -214,6 +214,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             // 进行渐变矩形的绘制
             GLMatrixState.pushMatrix();
             GLMatrixState.translate(0, 0, -1);
+            // 注: 因为正常获取的摄像头数据是旋转了90度的，所以这里要旋转回来
             GLMatrixState.rotate(-90, 0, 0, 1);
             // 最总变化矩阵
             float[] mVpMatrix = GLMatrixState.getFinalMatrix();
