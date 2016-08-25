@@ -232,8 +232,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                     }
                 }
             }
-
-
+            // 恢复变换矩阵
             GLMatrixState.popMatrix();
         }
     }
