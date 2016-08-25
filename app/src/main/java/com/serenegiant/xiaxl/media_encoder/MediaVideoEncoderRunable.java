@@ -55,15 +55,14 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
     /**
      * 运行在GLThread
      *
-     * @param tex_matrix
      * @param mvp_matrix
      * @return
      */
-    public boolean frameAvailableSoon(final float[] tex_matrix, final float[] mvp_matrix) {
+    public boolean frameAvailableSoon(final float[] mvp_matrix) {
         LogUtils.d(TAG, "---frameAvailableSoon---");
         boolean result;
         if (result = super.frameAvailableSoon()) {
-            mRenderRunnable.draw(tex_matrix, mvp_matrix);
+            mRenderRunnable.draw(mvp_matrix);
         }
         return result;
     }

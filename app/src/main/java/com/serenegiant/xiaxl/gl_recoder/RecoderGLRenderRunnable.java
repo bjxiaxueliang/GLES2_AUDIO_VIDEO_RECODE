@@ -27,7 +27,9 @@ public final class RecoderGLRenderRunnable implements Runnable {
 
     private Object mSurface;
     private int mTexId = -1;
-    private float[] mMatrix = new float[32];
+
+    // 最终变换矩阵，从glThread中拷贝过来的最终变换矩阵
+    private float[] mMatrix = new float[16];
 
     private boolean mRequestSetEglContext;
 
@@ -81,8 +83,6 @@ public final class RecoderGLRenderRunnable implements Runnable {
             mSurface = surface;
             //
             mRequestSetEglContext = true;
-            Matrix.setIdentityM(mMatrix, 0);
-            Matrix.setIdentityM(mMatrix, 16);
             //
             mSync.notifyAll();
             try {
@@ -96,21 +96,19 @@ public final class RecoderGLRenderRunnable implements Runnable {
     /**
      * 运行在GLThread
      *
-     * @param tex_matrix
      * @param mvp_matrix
      */
-    public final void draw(final float[] tex_matrix, final float[] mvp_matrix) {
-        draw(mTexId, tex_matrix, mvp_matrix);
+    public final void draw(final float[] mvp_matrix) {
+        draw(mTexId, mvp_matrix);
     }
 
     /**
      * 运行在GLThread
      *
      * @param texId
-     * @param texMatrix
      * @param mvpMatrix
      */
-    public final void draw(final int texId, final float[] texMatrix, final float[] mvpMatrix) {
+    public final void draw(final int texId, final float[] mvpMatrix) {
         synchronized (mSync) {
             // 释放资源
             if (mRequestRelease) {
@@ -118,16 +116,12 @@ public final class RecoderGLRenderRunnable implements Runnable {
             }
             //
             mTexId = texId;
-            //
-            if ((texMatrix != null) && (texMatrix.length >= 16)) {
-                System.arraycopy(texMatrix, 0, mMatrix, 0, 16);
+
+            // 拷贝最终变换矩阵
+            if (mvpMatrix != null) {
+                mMatrix = mvpMatrix.clone();
             } else {
                 Matrix.setIdentityM(mMatrix, 0);
-            }
-            if ((mvpMatrix != null) && (mvpMatrix.length >= 16)) {
-                System.arraycopy(mvpMatrix, 0, mMatrix, 16, 16);
-            } else {
-                Matrix.setIdentityM(mMatrix, 16);
             }
             mRequestDraw++;
             mSync.notifyAll();
@@ -185,10 +179,12 @@ public final class RecoderGLRenderRunnable implements Runnable {
             }
             if (localRequestDraw) {
                 if ((mSohuEgl != null) && mTexId >= 0) {
-                    GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-                    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-                    mRenderGLTextureRect.setMatrix(mMatrix, 16);
-                    mRenderGLTextureRect.draw(mTexId, mMatrix);
+                    // 清屏颜色为黑色
+                    GLES20.glClearColor(0, 0, 0, 0);
+                    GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT
+                            | GLES20.GL_COLOR_BUFFER_BIT);
+
+                    mRenderGLTextureRect.draw(mTexId,mMatrix);
                     mSohuEgl.swapMyEGLBuffers();
                 }
             } else {

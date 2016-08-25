@@ -10,6 +10,7 @@ import android.opengl.Matrix;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 
+import com.serenegiant.xiaxl.gl_util.GLMatrixState;
 import com.serenegiant.xiaxl.gl_util.GLTextureUtil;
 import com.serenegiant.xiaxl.gl_widget.GLTextureRect;
 import com.serenegiant.xiaxl.media_encoder.MediaVideoEncoderRunable;
@@ -104,10 +105,6 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             implements GLSurfaceView.Renderer {
 
 
-        private final float[] mStMatrix = new float[16];
-        private final float[] mMvpMatrix = new float[16];
-
-
         //
         private MediaVideoEncoderRunable mMediaVideoEncoderRunable;
 
@@ -120,8 +117,10 @@ public final class MainGLSurfaceView extends GLSurfaceView {
         public void onSurfaceCreated(GL10 gl, EGLConfig config) {
             // 清屏颜色为黑色
             GLES20.glClearColor(0, 0, 0, 0);
+
             // 初始化矩阵
-            Matrix.setIdentityM(mMvpMatrix, 0);
+            GLMatrixState.setInitStack();
+
 
             // 生成纹理Id
             mTextureId = GLTextureUtil.createOESTextureID();
@@ -146,8 +145,6 @@ public final class MainGLSurfaceView extends GLSurfaceView {
 
             // create object for preview display
             mGLTextureRect = new GLTextureRect(mCameraPreviewWidth, mCameraPreviewHeight);
-            // 矩阵初始化
-            mGLTextureRect.setMatrix(mMvpMatrix, 0);
 
         }
 
@@ -155,16 +152,26 @@ public final class MainGLSurfaceView extends GLSurfaceView {
         public void onSurfaceChanged(final GL10 unused, final int width, final int height) {
             // 设置视窗大小及位置
             GLES20.glViewport(0, 0, width, height);
-            //
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-            //
-            Matrix.setIdentityM(mMvpMatrix, 0);
-            //
-            if (mGLTextureRect != null) {
-                mGLTextureRect.setMatrix(mMvpMatrix, 0);
-            }
-            // 开启预览
-            mCameraHelper.startPreview(Camera.CameraInfo.CAMERA_FACING_BACK, mSurfaceTexture);
+
+
+            // 计算GLSurfaceView的宽高比
+            float ratio = (float) width / height;
+            // 设置camera位置
+            GLMatrixState.setCamera(
+                    //
+                    0, // 人眼位置的X
+                    0, // 人眼位置的Y
+                    1, // 人眼位置的Z
+                    //
+                    0, // 人眼球看的点X
+                    0, // 人眼球看的点Y
+                    0, // 人眼球看的点Z
+                    // up向量
+                    0,
+                    1,
+                    0);
+            // 调用此方法计算产生透视投影矩阵
+            GLMatrixState.setProjectFrustum(-ratio, ratio, -1, 1, 1, 20);
 
         }
 
@@ -194,8 +201,6 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                 // 从摄像机更新数据
                 if (mSurfaceTexture != null) {
                     mSurfaceTexture.updateTexImage();
-                    // get texture matrix
-                    mSurfaceTexture.getTransformMatrix(mStMatrix);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -207,8 +212,13 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                     | GLES20.GL_COLOR_BUFFER_BIT);
 
 
+            // 进行渐变矩形的绘制
+            GLMatrixState.pushMatrix();
+            GLMatrixState.translate(0, 0, -1);
+            // 最总变化矩阵
+            float[] mVPMatrix = GLMatrixState.getFinalMatrix();
             // 绘制纹理矩形
-            mGLTextureRect.draw(mTextureId, mStMatrix);
+            mGLTextureRect.draw(mTextureId, mVPMatrix);
 
             //---------------视频写入----------------
             // 减少一半的视频数据写入
@@ -217,10 +227,13 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                 synchronized (this) {
                     if (mMediaVideoEncoderRunable != null) {
                         // notify to capturing thread that the camera frame is available.
-                        mMediaVideoEncoderRunable.frameAvailableSoon(mStMatrix, mMvpMatrix);
+                        mMediaVideoEncoderRunable.frameAvailableSoon(mVPMatrix);
                     }
                 }
             }
+
+
+            GLMatrixState.popMatrix();
         }
     }
 
