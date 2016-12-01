@@ -6,6 +6,7 @@ import android.hardware.Camera;
 import android.opengl.EGL14;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 
@@ -214,8 +215,14 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             // 进行渐变矩形的绘制
             GLMatrixState.pushMatrix();
             GLMatrixState.translate(0, 0, -1);
-            // 注: 因为正常获取的摄像头数据是旋转了90度的，所以这里要旋转回来
-            GLMatrixState.rotate(-90, 0, 0, 1);
+
+            //适配Nexus 5X（后置摄像头装反了）
+            if (Build.MODEL.equals("Nexus 5X") && mCameraHelper.getCurrentPreviewCameraId() == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                GLMatrixState.rotate(-270, 0, 0, 1);
+            } else {
+                // 注: 因为正常获取的摄像头数据是旋转了90度的，所以这里要旋转回来
+                GLMatrixState.rotate(-90, 0, 0, 1);
+            }
             // 最总变化矩阵
             float[] mVpMatrix = GLMatrixState.getFinalMatrix();
             // 绘制纹理矩形
