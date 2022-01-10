@@ -11,9 +11,9 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
 
-public class GLTextureRect {
+public class XTextureGLRect {
 
-    private static final String TAG = GLTextureRect.class.getSimpleName();
+    private static final String TAG = XTextureGLRect.class.getSimpleName();
 
     // 顶点着色器
     private static final String vertexSource
@@ -59,7 +59,7 @@ public class GLTextureRect {
     /**
      * 构造方法
      */
-    public GLTextureRect(float cameraPreviewWidth, float cameraPreviewHeight) {
+    public XTextureGLRect(float cameraPreviewWidth, float cameraPreviewHeight) {
         // 顶点坐标和纹理坐标
         initVertexData(cameraPreviewWidth, cameraPreviewHeight);
         // 初始化着色器

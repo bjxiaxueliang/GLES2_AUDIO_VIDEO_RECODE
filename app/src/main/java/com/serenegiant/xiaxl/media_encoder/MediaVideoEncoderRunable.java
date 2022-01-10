@@ -8,8 +8,8 @@ import android.util.Log;
 import android.view.Surface;
 
 import com.serenegiant.xiaxl.LogUtils;
-import com.serenegiant.xiaxl.MainGLSurfaceView;
-import com.serenegiant.xiaxl.gl_recoder.RecoderGLRenderRunnable;
+import com.serenegiant.xiaxl.XShowGLSurfaceView;
+import com.serenegiant.xiaxl.gl_recoder.XRecoderGLRenderRunnable;
 import com.serenegiant.xiaxl.media_muxer.XMediaMuxerManager;
 
 import java.io.IOException;
@@ -27,10 +27,10 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
 
     private final int mWidth;
     private final int mHeight;
-    private RecoderGLRenderRunnable mRenderRunnable;
+    private XRecoderGLRenderRunnable mRenderRunnable;
 
     // 由MediaCodec创建的输入surface
-    private Surface mSurface;
+    private Surface mMediaCodecSurface;
 
     /**
      * 构造方法,父类中，开启了该线程
@@ -49,7 +49,7 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
         /**
          * 开启了一个看不到的绘制线程
          */
-        mRenderRunnable = RecoderGLRenderRunnable.createHandler(TAG);
+        mRenderRunnable = XRecoderGLRenderRunnable.createHandler(TAG);
     }
 
     /**
@@ -98,7 +98,7 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
         mMediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // get Surface for encoder input
         // this method only can call between #configure and #start
-        mSurface = mMediaCodec.createInputSurface();
+        mMediaCodecSurface = mMediaCodec.createInputSurface();
         //
         mMediaCodec.start();
         //
@@ -115,19 +115,19 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
     /**
      * 运行在GLThread中
      *
-     * @param eglContext 这个eglContext来自GLThread的eglContext
-     * @param texId      纹理Id
+     * @param xShowEGLContext 这个eglContext来自GLThread的eglContext
+     * @param xShowGLTexId      纹理Id
      */
-    public void setEglContext(final EGLContext eglContext, MainGLSurfaceView glSurfaceView, final int texId) {
-        mRenderRunnable.setEglContext(eglContext, glSurfaceView, texId, mSurface);
+    public void setEglContext(final EGLContext xShowEGLContext, XShowGLSurfaceView xShowGLSurfaceView, final int xShowGLTexId) {
+        mRenderRunnable.setEglContext(xShowEGLContext, xShowGLSurfaceView, xShowGLTexId, mMediaCodecSurface);
     }
 
     @Override
     public void release() {
         LogUtils.i(TAG, "release:");
-        if (mSurface != null) {
-            mSurface.release();
-            mSurface = null;
+        if (mMediaCodecSurface != null) {
+            mMediaCodecSurface.release();
+            mMediaCodecSurface = null;
         }
         if (mRenderRunnable != null) {
             mRenderRunnable.release();

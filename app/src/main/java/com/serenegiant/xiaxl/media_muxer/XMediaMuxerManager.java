@@ -18,6 +18,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+/**
+ * 把音轨和视频轨道合成封装为新的视频
+ */
 public class XMediaMuxerManager {
 
     private static final String TAG = XMediaMuxerManager.class.getSimpleName();
@@ -26,7 +29,9 @@ public class XMediaMuxerManager {
 
     // 输出文件路径
     private String mOutputPath;
+    // 把音轨和视频轨道合成封装为新的视频
     private final MediaMuxer mMediaMuxer;
+    //
     private int mEncoderCount, mStatredCount;
     private boolean mIsStarted;
     private BaseMediaEncoderRunable mVideoEncoder, mAudioEncoder;
@@ -165,8 +170,8 @@ public class XMediaMuxerManager {
      * write encoded data to muxer
      * 写入数据
      *
-     * @param trackIndex
-     * @param byteBuf
+     * @param trackIndex 轨道
+     * @param byteBuf    buffer数据
      * @param bufferInfo
      */
     public synchronized void writeSampleData(final int trackIndex, final ByteBuffer byteBuf, final MediaCodec.BufferInfo bufferInfo) {

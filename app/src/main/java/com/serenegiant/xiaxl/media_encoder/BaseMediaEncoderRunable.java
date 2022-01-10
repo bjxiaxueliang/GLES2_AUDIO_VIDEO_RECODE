@@ -365,7 +365,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
                 }
             } else if (encoderStatus == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
                 // this shoud not come when encoding
-                //拿到输出缓冲区,用于取到编码后的数据
+                // 拿到输出缓冲区,用于取到编码后的数据
                 encoderOutputBuffers = mMediaCodec.getOutputBuffers();
             } else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 // should happen before receiving buffers, and should only happen once
@@ -394,7 +394,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
                 // unexpected status
 
             } else {
-                //获取解码后的数据
+                // 获取解码后的数据
                 final ByteBuffer encodedData = encoderOutputBuffers[encoderStatus];
                 if (encodedData == null) {
                     // this never should come...may be a MediaCodec internal error

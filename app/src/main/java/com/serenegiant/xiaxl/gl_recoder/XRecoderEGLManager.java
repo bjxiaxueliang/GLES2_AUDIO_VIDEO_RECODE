@@ -1,4 +1,4 @@
-package com.serenegiant.xiaxl.egl;
+package com.serenegiant.xiaxl.gl_recoder;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
@@ -16,9 +16,9 @@ import com.serenegiant.xiaxl.LogUtils;
 /**
  * EGL 相关配置
  */
-public class XEGLManager {
+public class XRecoderEGLManager {
 
-    private static final String TAG = XEGLManager.class.getSimpleName();
+    private static final String TAG = XRecoderEGLManager.class.getSimpleName();
     //
     private static final int EGL_RECORDABLE_ANDROID = 0x3142;
     //
@@ -30,24 +30,24 @@ public class XEGLManager {
     /**
      * 构造方法
      *
-     * @param eglContext
+     * @param xShowEglContext
      */
-    public XEGLManager(final EGLContext eglContext, final Object surface) {
+    public XRecoderEGLManager(final EGLContext xShowEglContext, final Object mediaCodecsurface) {
 
-        initMyEGL(eglContext, surface);
+        initXRecoderEGL(xShowEglContext, mediaCodecsurface);
     }
 
     /**
      * 初始化EGL
      *
-     * @param eglContext
+     * @param xShowEglContext
      */
-    private void initMyEGL(final EGLContext eglContext, final Object surface) {
+    private void initXRecoderEGL(final EGLContext xShowEglContext, final Object mediaCodecsurface) {
 
-        if (!(surface instanceof SurfaceView)
-                && !(surface instanceof Surface)
-                && !(surface instanceof SurfaceHolder)
-                && !(surface instanceof SurfaceTexture)) {
+        if (!(mediaCodecsurface instanceof SurfaceView)
+                && !(mediaCodecsurface instanceof Surface)
+                && !(mediaCodecsurface instanceof SurfaceHolder)
+                && !(mediaCodecsurface instanceof SurfaceTexture)) {
             throw new IllegalArgumentException("unsupported surface");
         }
 
@@ -92,17 +92,19 @@ public class XEGLManager {
         }
 
         //--------------------mEglContext-----------------------
-        EGLContext myEglContext = eglContext;
-        if (myEglContext == null) {
-            myEglContext = EGL14.EGL_NO_CONTEXT;
+        EGLContext shareEglContext = xShowEglContext;
+        if (shareEglContext == null) {
+            shareEglContext = EGL14.EGL_NO_CONTEXT;
         }
         //
         final int[] attrib_list = {
                 EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
                 EGL14.EGL_NONE
         };
-        //
-        mEglContext = EGL14.eglCreateContext(mEglDisplay, configs[0], myEglContext, attrib_list, 0);
+
+        // eglDisplay 即是之前创建的显示设备，
+        // share_context 指定一个共享的EGL Context，共享后，2个EGLContext可以相互使用对方创建的 texture 等资源，默认情况下是不共享的
+        mEglContext = EGL14.eglCreateContext(mEglDisplay, configs[0], shareEglContext, attrib_list, 0);
         checkMyEGLError("eglCreateContext");
 
 
@@ -113,7 +115,7 @@ public class XEGLManager {
         };
         //
         try {
-            mEglSurface = EGL14.eglCreateWindowSurface(mEglDisplay, configs[0], surface, surfaceAttribs, 0);
+            mEglSurface = EGL14.eglCreateWindowSurface(mEglDisplay, configs[0], mediaCodecsurface, surfaceAttribs, 0);
         } catch (final IllegalArgumentException e) {
             Log.e(TAG, "eglCreateWindowSurface", e);
         }

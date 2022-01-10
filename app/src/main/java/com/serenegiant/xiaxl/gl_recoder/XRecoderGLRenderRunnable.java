@@ -8,28 +8,36 @@ import android.text.TextUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
-import com.serenegiant.xiaxl.MainGLSurfaceView;
-import com.serenegiant.xiaxl.egl.XEGLManager;
-import com.serenegiant.xiaxl.gl_widget.GLTextureRect;
+import com.serenegiant.xiaxl.XShowGLSurfaceView;
+import com.serenegiant.xiaxl.gl_widget.XTextureGLRect;
 
 
 /**
  * RenderRunnable
  */
-public final class RecoderGLRenderRunnable implements Runnable {
+public final class XRecoderGLRenderRunnable implements Runnable {
 
-    private static final String TAG = RecoderGLRenderRunnable.class.getSimpleName();
+    private static final String TAG = XRecoderGLRenderRunnable.class.getSimpleName();
 
     private final Object mSync = new Object();
-    private EGLContext mEGLContext;
 
-    private MainGLSurfaceView mGLSurfaceView;
+    /**
+     *
+     */
+    // 这个eglContext来自GLThread的eglContext
+    private EGLContext xShowEGLContext;
+    // XShowGLSurfaceView
+    private XShowGLSurfaceView xShowGLSurfaceView;
+    // 纹理id
+    private int xShowGLTexId = -1;
+    /**
+     * 由MediaCodec创建的输入surface
+     */
+    private Object xRecoderSurface;
 
-    private Object mSurface;
-    private int mTexId = -1;
 
     // 最终变换矩阵，从glThread中拷贝过来的最终变换矩阵
-    private float[] mMatrix = new float[16];
+    private float[] mRecoderMatrix = new float[16];
 
     private boolean mRequestSetEglContext;
 
@@ -45,9 +53,9 @@ public final class RecoderGLRenderRunnable implements Runnable {
      * @param name
      * @return
      */
-    public static final RecoderGLRenderRunnable createHandler(final String name) {
+    public static final XRecoderGLRenderRunnable createHandler(final String name) {
 
-        final RecoderGLRenderRunnable handler = new RecoderGLRenderRunnable();
+        final XRecoderGLRenderRunnable handler = new XRecoderGLRenderRunnable();
         synchronized (handler.mSync) {
             new Thread(handler, !TextUtils.isEmpty(name) ? name : TAG).start();
             try {
@@ -61,14 +69,14 @@ public final class RecoderGLRenderRunnable implements Runnable {
     /**
      * 开始录制时，调用该方法,设置一些数据
      *
-     * @param eglContext
-     * @param texId
-     * @param surface
+     * @param xShowEGLContext
+     * @param xShowGLTexId
+     * @param xRecoderSurface
      */
-    public final void setEglContext(final EGLContext eglContext, MainGLSurfaceView glSurfaceView, final int texId, final Object surface) {
+    public final void setEglContext(final EGLContext xShowEGLContext, XShowGLSurfaceView xShowGLSurfaceView, final int xShowGLTexId, final Object xRecoderSurface) {
         //
-        if (!(surface instanceof Surface) && !(surface instanceof SurfaceTexture) && !(surface instanceof SurfaceHolder)) {
-            throw new RuntimeException("unsupported window type:" + surface);
+        if (!(xRecoderSurface instanceof Surface) && !(xRecoderSurface instanceof SurfaceTexture) && !(xRecoderSurface instanceof SurfaceHolder)) {
+            throw new RuntimeException("unsupported window type:" + xRecoderSurface);
         }
         //
         synchronized (mSync) {
@@ -77,10 +85,10 @@ public final class RecoderGLRenderRunnable implements Runnable {
                 return;
             }
             //
-            mEGLContext = eglContext;
-            mGLSurfaceView = glSurfaceView;
-            mTexId = texId;
-            mSurface = surface;
+            this.xShowEGLContext = xShowEGLContext;
+            this.xShowGLSurfaceView = xShowGLSurfaceView;
+            this.xShowGLTexId = xShowGLTexId;
+            this.xRecoderSurface = xRecoderSurface;
             //
             mRequestSetEglContext = true;
             //
@@ -99,7 +107,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
      * @param mvp_matrix
      */
     public final void draw(final float[] mvp_matrix) {
-        draw(mTexId, mvp_matrix);
+        draw(xShowGLTexId, mvp_matrix);
     }
 
     /**
@@ -115,13 +123,13 @@ public final class RecoderGLRenderRunnable implements Runnable {
                 return;
             }
             //
-            mTexId = texId;
+            xShowGLTexId = texId;
 
             // 拷贝最终变换矩阵
             if (mvpMatrix != null) {
-                mMatrix = mvpMatrix.clone();
+                mRecoderMatrix = mvpMatrix.clone();
             } else {
-                Matrix.setIdentityM(mMatrix, 0);
+                Matrix.setIdentityM(mRecoderMatrix, 0);
             }
             mRequestDraw++;
             mSync.notifyAll();
@@ -146,8 +154,8 @@ public final class RecoderGLRenderRunnable implements Runnable {
         }
     }
 
-    private XEGLManager mXEglManager;
-    private GLTextureRect mRenderGLTextureRect;
+    private XRecoderEGLManager mXRecoderEglManager;
+    private XTextureGLRect mXRecoderGLRect;
 
     @Override
     public final void run() {
@@ -178,14 +186,14 @@ public final class RecoderGLRenderRunnable implements Runnable {
                 }
             }
             if (localRequestDraw) {
-                if ((mXEglManager != null) && mTexId >= 0) {
+                if ((mXRecoderEglManager != null) && xShowGLTexId >= 0) {
                     // 清屏颜色为黑色
                     GLES20.glClearColor(0, 0, 0, 0);
                     GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT
                             | GLES20.GL_COLOR_BUFFER_BIT);
 
-                    mRenderGLTextureRect.draw(mTexId,mMatrix);
-                    mXEglManager.swapMyEGLBuffers();
+                    mXRecoderGLRect.draw(xShowGLTexId, mRecoderMatrix);
+                    mXRecoderEglManager.swapMyEGLBuffers();
                 }
             } else {
                 //--------进入等待状态-----------
@@ -211,10 +219,10 @@ public final class RecoderGLRenderRunnable implements Runnable {
         //
         releaseEGL();
         //
-        mXEglManager = new XEGLManager(mEGLContext, mSurface);
+        mXRecoderEglManager = new XRecoderEGLManager(xShowEGLContext, xRecoderSurface);
         //
-        mRenderGLTextureRect = new GLTextureRect(mGLSurfaceView.mCameraPreviewWidth, mGLSurfaceView.mCameraPreviewHeight);
-        mSurface = null;
+        mXRecoderGLRect = new XTextureGLRect(xShowGLSurfaceView.mCameraPreviewWidth, xShowGLSurfaceView.mCameraPreviewHeight);
+        xRecoderSurface = null;
         mSync.notifyAll();
     }
 
@@ -222,9 +230,9 @@ public final class RecoderGLRenderRunnable implements Runnable {
      *
      */
     private final void releaseEGL() {
-        if (mXEglManager != null) {
-            mXEglManager.release();
-            mXEglManager = null;
+        if (mXRecoderEglManager != null) {
+            mXRecoderEglManager.release();
+            mXRecoderEglManager = null;
         }
     }
 

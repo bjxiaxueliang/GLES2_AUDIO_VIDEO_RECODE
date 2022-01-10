@@ -12,11 +12,11 @@ import com.serenegiant.xiaxl.media_muxer.XMediaMuxerManager;
 
 import java.io.IOException;
 
-public class MainActivity extends Activity {
+public class XShowActivity extends Activity {
 
 
     // 显示Camera的GlsurfaceView
-    private MainGLSurfaceView mGLCameraView;
+    private XShowGLSurfaceView mGLCameraView;
     // 录制按钮
     private Button mRecordButton;
 
@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
 
-        mGLCameraView = (MainGLSurfaceView) findViewById(R.id.cameraView);
+        mGLCameraView = (XShowGLSurfaceView) findViewById(R.id.cameraView);
 
 
         mRecordButton = (Button) findViewById(R.id.record_button);
@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
             mRecordButton.setText(R.string.toggleRecordingOff);
 
             // if you record audio only, ".m4a" is also OK.
-            mMediaMuxerManager = new XMediaMuxerManager(MainActivity.this, ".mp4");
+            mMediaMuxerManager = new XMediaMuxerManager(XShowActivity.this, ".mp4");
             //开始视频录制
             new MediaVideoEncoderRunable(mMediaMuxerManager, mMediaEncoderListener, 480, 480);
             // 开启音频录制

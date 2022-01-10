@@ -12,7 +12,7 @@ import android.view.SurfaceHolder;
 
 import com.serenegiant.xiaxl.gl_util.GLMatrixState;
 import com.serenegiant.xiaxl.gl_util.GLTextureUtil;
-import com.serenegiant.xiaxl.gl_widget.GLTextureRect;
+import com.serenegiant.xiaxl.gl_widget.XTextureGLRect;
 import com.serenegiant.xiaxl.media_encoder.MediaVideoEncoderRunable;
 import com.serenegiant.xiaxl.util.CameraHelper;
 
@@ -23,8 +23,8 @@ import javax.microedition.khronos.opengles.GL10;
 /**
  * Opengl回显Camera数据的页面
  */
-public final class MainGLSurfaceView extends GLSurfaceView {
-    private static final String TAG = MainGLSurfaceView.class.getSimpleName();
+public final class XShowGLSurfaceView extends GLSurfaceView {
+    private static final String TAG = XShowGLSurfaceView.class.getSimpleName();
 
     //
     public int mCameraPreviewWidth = 1920;
@@ -35,7 +35,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
     // 用于与Camera绑定的 SurfaceTexture
     private SurfaceTexture mSurfaceTexture = null;
     //
-    private GLTextureRect mGLTextureRect;
+    private XTextureGLRect mXTextureGLRect;
 
     // 渲染器
     private final GLSceneRenderer mRenderer;
@@ -44,15 +44,15 @@ public final class MainGLSurfaceView extends GLSurfaceView {
     private CameraHelper mCameraHelper = CameraHelper.getInstance();
 
 
-    public MainGLSurfaceView(final Context context) {
+    public XShowGLSurfaceView(final Context context) {
         this(context, null, 0);
     }
 
-    public MainGLSurfaceView(final Context context, final AttributeSet attrs) {
+    public XShowGLSurfaceView(final Context context, final AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public MainGLSurfaceView(final Context context, final AttributeSet attrs, final int defStyle) {
+    public XShowGLSurfaceView(final Context context, final AttributeSet attrs, final int defStyle) {
         super(context, attrs);
         // render
         mRenderer = new GLSceneRenderer();
@@ -130,7 +130,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                 @Override
                 public void onFrameAvailable(SurfaceTexture surfaceTexture) {
                     // 请求进行下次渲染
-                    MainGLSurfaceView.this.requestRender();
+                    XShowGLSurfaceView.this.requestRender();
                 }
             });
 
@@ -144,7 +144,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
 
 
             // create object for preview display
-            mGLTextureRect = new GLTextureRect(mCameraPreviewWidth, mCameraPreviewHeight);
+            mXTextureGLRect = new XTextureGLRect(mCameraPreviewWidth, mCameraPreviewHeight);
 
         }
 
@@ -226,7 +226,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
             // 最总变化矩阵
             float[] mVpMatrix = GLMatrixState.getFinalMatrix();
             // 绘制纹理矩形
-            mGLTextureRect.draw(mTextureId, mVpMatrix);
+            mXTextureGLRect.draw(mTextureId, mVpMatrix);
 
             //---------------视频写入----------------
             // 减少一半的视频数据写入
@@ -258,7 +258,7 @@ public final class MainGLSurfaceView extends GLSurfaceView {
                 synchronized (mRenderer) {
                     // 这里是获取了一个GLThread的EGL14.eglGetCurrentContext()
                     if (mediaVideoEncoderRunable != null) {
-                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), MainGLSurfaceView.this, mTextureId);
+                        mediaVideoEncoderRunable.setEglContext(EGL14.eglGetCurrentContext(), XShowGLSurfaceView.this, mTextureId);
                     }
                     mRenderer.mMediaVideoEncoderRunable = mediaVideoEncoderRunable;
                 }
