@@ -13,7 +13,7 @@
 ![文件路径](https://raw.githubusercontent.com/xiaxveliang/GLES2_AUDIO_VIDEO_RECODE/master/image/002.png)
 
 # 注：提前开启录音、Camera权限
-![Camera与麦克风权限](https://raw.githubusercontent.com/xiaxveliang/GLES2_AUDIO_VIDEO_RECODE/master/image/003.png)
+![Camera与麦克风权限](https://raw.githubusercontent.com/xiaxveliang/GLES2_AUDIO_VIDEO_RECODE/master/image/003.jpg)
 
 
 
