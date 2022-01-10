@@ -18,9 +18,9 @@ import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.Locale;
 
-public class SohuMediaMuxerManager {
+public class XMediaMuxerManager {
 
-    private static final String TAG = SohuMediaMuxerManager.class.getSimpleName();
+    private static final String TAG = XMediaMuxerManager.class.getSimpleName();
 
     private static final String DIR_NAME = "GL_AUDIO_VIDEO_RECODE";
 
@@ -39,7 +39,7 @@ public class SohuMediaMuxerManager {
      * @param ext extension of output file
      * @throws IOException
      */
-    public SohuMediaMuxerManager(String ext) throws IOException {
+    public XMediaMuxerManager(String ext) throws IOException {
         if (TextUtils.isEmpty(ext)) {
             ext = ".mp4";
         }

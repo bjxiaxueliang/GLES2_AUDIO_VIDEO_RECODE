@@ -16,9 +16,9 @@ import com.serenegiant.xiaxl.LogUtils;
 /**
  * EGL 相关配置
  */
-public class SohuEGLManager {
+public class XEGLManager {
 
-    private static final String TAG = SohuEGLManager.class.getSimpleName();
+    private static final String TAG = XEGLManager.class.getSimpleName();
     //
     private static final int EGL_RECORDABLE_ANDROID = 0x3142;
     //
@@ -32,7 +32,7 @@ public class SohuEGLManager {
      *
      * @param eglContext
      */
-    public SohuEGLManager(final EGLContext eglContext, final Object surface) {
+    public XEGLManager(final EGLContext eglContext, final Object surface) {
 
         initMyEGL(eglContext, surface);
     }

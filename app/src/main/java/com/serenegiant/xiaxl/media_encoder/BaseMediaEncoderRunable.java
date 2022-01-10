@@ -5,7 +5,7 @@ import android.media.MediaCodec;
 import android.media.MediaFormat;
 
 import com.serenegiant.xiaxl.LogUtils;
-import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.media_muxer.XMediaMuxerManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -61,7 +61,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
      * ----------------------------
      */
     // MediaMuxerWarapper instance
-    protected SohuMediaMuxerManager mSohuMediaMuxerManager;
+    protected XMediaMuxerManager mXMediaMuxerManager;
     //
     protected final MediaEncoderListener mMediaEncoderListener;
 
@@ -72,7 +72,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
      * @param mediaMuxerManager
      * @param mediaEncoderListener
      */
-    public BaseMediaEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
+    public BaseMediaEncoderRunable(final XMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
         LogUtils.d(TAG,"---BaseMediaEncoderRunable---");
         if (mediaEncoderListener == null) {
             throw new NullPointerException("MediaEncoderListener is null");
@@ -81,11 +81,11 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
             throw new NullPointerException("MediaMuxerWrapper is null");
         }
         //
-        this.mSohuMediaMuxerManager = mediaMuxerManager;
+        this.mXMediaMuxerManager = mediaMuxerManager;
         this.mMediaEncoderListener = mediaEncoderListener;
         //
         //
-        this.mSohuMediaMuxerManager.addEncoder(BaseMediaEncoderRunable.this);
+        this.mXMediaMuxerManager.addEncoder(BaseMediaEncoderRunable.this);
 
         //
         LogUtils.d(TAG,"---BaseMediaEncoderRunable synchronized (mSync) before begin---");
@@ -266,9 +266,9 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
         }
         // ----------释放muxer-----------
         if (mMuxerStarted) {
-            if (mSohuMediaMuxerManager != null) {
+            if (mXMediaMuxerManager != null) {
                 try {
-                    mSohuMediaMuxerManager.stop();
+                    mXMediaMuxerManager.stop();
                 } catch (final Exception e) {
                     e.printStackTrace();
                 }
@@ -344,7 +344,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
         //
         int count = 0;
 
-        if (mSohuMediaMuxerManager == null) {
+        if (mXMediaMuxerManager == null) {
             return;
         }
 
@@ -375,16 +375,16 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
                 // get output format from codec and pass them to muxer
                 final MediaFormat format = mMediaCodec.getOutputFormat();
                 //
-                mTrackIndex = mSohuMediaMuxerManager.addTrack(format);
+                mTrackIndex = mXMediaMuxerManager.addTrack(format);
                 //
                 mMuxerStarted = true;
                 //
-                if (!mSohuMediaMuxerManager.start()) {
+                if (!mXMediaMuxerManager.start()) {
                     // we should wait until muxer is ready
-                    synchronized (mSohuMediaMuxerManager) {
-                        while (!mSohuMediaMuxerManager.isStarted())
+                    synchronized (mXMediaMuxerManager) {
+                        while (!mXMediaMuxerManager.isStarted())
                             try {
-                                mSohuMediaMuxerManager.wait(100);
+                                mXMediaMuxerManager.wait(100);
                             } catch (final InterruptedException e) {
                                 break LOOP;
                             }
@@ -415,7 +415,7 @@ public abstract class BaseMediaEncoderRunable implements Runnable {
                     // write encoded data to muxer(need to adjust presentationTimeUs.
                     mBufferInfo.presentationTimeUs = getPTSUs();
                     // 编码
-                    mSohuMediaMuxerManager.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
+                    mXMediaMuxerManager.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
                     prevOutputPTSUs = mBufferInfo.presentationTimeUs;
                 }
                 // return buffer to encoder

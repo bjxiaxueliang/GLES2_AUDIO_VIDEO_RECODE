@@ -10,7 +10,7 @@ import android.view.Surface;
 import com.serenegiant.xiaxl.LogUtils;
 import com.serenegiant.xiaxl.MainGLSurfaceView;
 import com.serenegiant.xiaxl.gl_recoder.RecoderGLRenderRunnable;
-import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.media_muxer.XMediaMuxerManager;
 
 import java.io.IOException;
 
@@ -40,7 +40,7 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
      * @param width
      * @param height
      */
-    public MediaVideoEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener, final int width, final int height) {
+    public MediaVideoEncoderRunable(final XMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener, final int width, final int height) {
         super(mediaMuxerManager, mediaEncoderListener);
         LogUtils.i(TAG, "MediaVideoEncoderRunable: ");
         mWidth = width;
@@ -69,7 +69,7 @@ public class MediaVideoEncoderRunable extends BaseMediaEncoderRunable {
 
 
     /**
-     * 开始录制前的准备(目前由SohuMediaMuxerManager在主线程调用)
+     * 开始录制前的准备(目前由XMediaMuxerManager在主线程调用)
      *
      * @throws IOException
      */

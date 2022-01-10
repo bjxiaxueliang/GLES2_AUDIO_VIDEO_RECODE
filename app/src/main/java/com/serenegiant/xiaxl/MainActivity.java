@@ -8,7 +8,7 @@ import android.widget.Button;
 import com.serenegiant.xiaxl.media_encoder.MediaAudioEncoderRunable;
 import com.serenegiant.xiaxl.media_encoder.BaseMediaEncoderRunable;
 import com.serenegiant.xiaxl.media_encoder.MediaVideoEncoderRunable;
-import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.media_muxer.XMediaMuxerManager;
 
 import java.io.IOException;
 
@@ -21,7 +21,7 @@ public class MainActivity extends Activity {
     private Button mRecordButton;
 
     // muxer for audio/video recording
-    private SohuMediaMuxerManager mMediaMuxerManager;
+    private XMediaMuxerManager mMediaMuxerManager;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
             mRecordButton.setText(R.string.toggleRecordingOff);
 
             // if you record audio only, ".m4a" is also OK.
-            mMediaMuxerManager = new SohuMediaMuxerManager(".mp4");
+            mMediaMuxerManager = new XMediaMuxerManager(".mp4");
             //开始视频录制
             new MediaVideoEncoderRunable(mMediaMuxerManager, mMediaEncoderListener, 480, 480);
             // 开启音频录制

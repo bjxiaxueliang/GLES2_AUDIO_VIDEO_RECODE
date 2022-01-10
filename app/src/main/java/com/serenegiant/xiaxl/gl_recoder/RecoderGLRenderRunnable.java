@@ -9,7 +9,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 
 import com.serenegiant.xiaxl.MainGLSurfaceView;
-import com.serenegiant.xiaxl.egl.SohuEGLManager;
+import com.serenegiant.xiaxl.egl.XEGLManager;
 import com.serenegiant.xiaxl.gl_widget.GLTextureRect;
 
 
@@ -146,7 +146,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
         }
     }
 
-    private SohuEGLManager mSohuEgl;
+    private XEGLManager mXEglManager;
     private GLTextureRect mRenderGLTextureRect;
 
     @Override
@@ -178,14 +178,14 @@ public final class RecoderGLRenderRunnable implements Runnable {
                 }
             }
             if (localRequestDraw) {
-                if ((mSohuEgl != null) && mTexId >= 0) {
+                if ((mXEglManager != null) && mTexId >= 0) {
                     // 清屏颜色为黑色
                     GLES20.glClearColor(0, 0, 0, 0);
                     GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT
                             | GLES20.GL_COLOR_BUFFER_BIT);
 
                     mRenderGLTextureRect.draw(mTexId,mMatrix);
-                    mSohuEgl.swapMyEGLBuffers();
+                    mXEglManager.swapMyEGLBuffers();
                 }
             } else {
                 //--------进入等待状态-----------
@@ -211,7 +211,7 @@ public final class RecoderGLRenderRunnable implements Runnable {
         //
         releaseEGL();
         //
-        mSohuEgl = new SohuEGLManager(mEGLContext, mSurface);
+        mXEglManager = new XEGLManager(mEGLContext, mSurface);
         //
         mRenderGLTextureRect = new GLTextureRect(mGLSurfaceView.mCameraPreviewWidth, mGLSurfaceView.mCameraPreviewHeight);
         mSurface = null;
@@ -222,9 +222,9 @@ public final class RecoderGLRenderRunnable implements Runnable {
      *
      */
     private final void releaseEGL() {
-        if (mSohuEgl != null) {
-            mSohuEgl.release();
-            mSohuEgl = null;
+        if (mXEglManager != null) {
+            mXEglManager.release();
+            mXEglManager = null;
         }
     }
 

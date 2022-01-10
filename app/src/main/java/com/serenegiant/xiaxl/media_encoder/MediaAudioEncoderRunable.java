@@ -8,7 +8,7 @@ import android.media.MediaFormat;
 import android.media.MediaRecorder;
 
 import com.serenegiant.xiaxl.LogUtils;
-import com.serenegiant.xiaxl.media_muxer.SohuMediaMuxerManager;
+import com.serenegiant.xiaxl.media_muxer.XMediaMuxerManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,7 +36,7 @@ public class MediaAudioEncoderRunable extends BaseMediaEncoderRunable {
      * @param mediaMuxerManager
      * @param mediaEncoderListener
      */
-    public MediaAudioEncoderRunable(final SohuMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
+    public MediaAudioEncoderRunable(final XMediaMuxerManager mediaMuxerManager, final MediaEncoderListener mediaEncoderListener) {
         super(mediaMuxerManager, mediaEncoderListener);
     }
 
