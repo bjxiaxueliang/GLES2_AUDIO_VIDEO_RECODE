@@ -1,6 +1,7 @@
 package com.serenegiant.xiaxl.media_muxer;
 
 
+import android.content.Context;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
@@ -10,21 +11,18 @@ import android.text.TextUtils;
 import com.serenegiant.xiaxl.media_encoder.BaseMediaEncoderRunable;
 import com.serenegiant.xiaxl.media_encoder.MediaAudioEncoderRunable;
 import com.serenegiant.xiaxl.media_encoder.MediaVideoEncoderRunable;
+import com.serenegiant.xiaxl.util.SdCardUtil;
+import com.serenegiant.xiaxl.util.TimeUtil;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.GregorianCalendar;
-import java.util.Locale;
 
 public class XMediaMuxerManager {
 
     private static final String TAG = XMediaMuxerManager.class.getSimpleName();
 
     private static final String DIR_NAME = "GL_AUDIO_VIDEO_RECODE";
-
-    private static final SimpleDateFormat mDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US);
 
     // 输出文件路径
     private String mOutputPath;
@@ -39,13 +37,13 @@ public class XMediaMuxerManager {
      * @param ext extension of output file
      * @throws IOException
      */
-    public XMediaMuxerManager(String ext) throws IOException {
+    public XMediaMuxerManager(Context context, String ext) throws IOException {
         if (TextUtils.isEmpty(ext)) {
             ext = ".mp4";
         }
         try {
             // 输出文件路径
-            mOutputPath = getCaptureFile(ext).toString();
+            mOutputPath = getCaptureFile(context, ext);
             //
         } catch (final NullPointerException e) {
             throw new RuntimeException("This app has no permission of writing external storage");
@@ -185,25 +183,20 @@ public class XMediaMuxerManager {
      * @param ext .mp4(.m4a for audio) or .png
      * @return return null when this app has no writing permission to external storage.
      */
-    public static final File getCaptureFile(final String ext) {
-        // 文件路径/Sdcard/GL_AUDIO_VIDEO_RECODE
-        final File dir = new File(Environment.getExternalStorageDirectory(), DIR_NAME);
-        dir.mkdirs();
-        if (dir.canWrite()) {
-            return new File(dir, getDateTimeString() + ext);
-        }
-        return null;
+    public static final String getCaptureFile(final Context context, final String ext) {
+        /**
+         * 生成路径 /sdcard/Android/data/包名/file/GL_AUDIO_VIDEO_RECODE/time.mp4
+         */
+        StringBuffer sb = new StringBuffer();
+        // 文件夹路径
+        sb.append(SdCardUtil.getPrivateFilePath(context, DIR_NAME));
+        sb.append(File.separator);
+        // 以时间命名
+        sb.append(TimeUtil.getFormatCurrTime());
+        // 扩展名.mp4
+        sb.append(ext);
+        return sb.toString();
     }
 
-    /**
-     * 获取当前时间的格式化形式
-     * get current date and time as String
-     *
-     * @return
-     */
-    private static final String getDateTimeString() {
-        final GregorianCalendar now = new GregorianCalendar();
-        return mDateTimeFormat.format(now.getTime());
-    }
 
 }

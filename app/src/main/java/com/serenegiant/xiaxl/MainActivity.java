@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
             mRecordButton.setText(R.string.toggleRecordingOff);
 
             // if you record audio only, ".m4a" is also OK.
-            mMediaMuxerManager = new XMediaMuxerManager(".mp4");
+            mMediaMuxerManager = new XMediaMuxerManager(MainActivity.this, ".mp4");
             //开始视频录制
             new MediaVideoEncoderRunable(mMediaMuxerManager, mMediaEncoderListener, 480, 480);
             // 开启音频录制
